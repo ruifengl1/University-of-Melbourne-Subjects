@@ -39,7 +39,6 @@ Before running program using python, it must install open-mpi or mpich to build 
 brew install open-mpi or brew install mpich
 
 pip install mpi4py
-
 ```    
 ## Running the tests
 
@@ -47,12 +46,10 @@ Type the command below to run the ```ass1.slurm``` script on the Spartan. The sl
 
 ```
 sbatch ass1.slurm
-
 ```
 Or you may want to run on the single node(local computer), type the command below with specified cores avaliable
 ```
 mpirun -np 4 python3 assignment1.py
-
 ```
 
 ### Test's results
