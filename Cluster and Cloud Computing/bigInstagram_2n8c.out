@@ -1,0 +1,33 @@
+Rank the Grid boxes based on the total number of instagram posts
+C2 : 174128 posts
+B2 : 21477 posts
+C3 : 17075 posts
+B3 : 5582 posts
+C4 : 4052 posts
+B1 : 3311 posts
+C5 : 2580 posts
+D3 : 2246 posts
+D4 : 1823 posts
+C1 : 1522 posts
+B4 : 854 posts
+D5 : 717 posts
+A2 : 477 posts
+A3 : 333 posts
+A1 : 262 posts
+A4 : 83 posts
+Rank the Rows based on the total number of instagram posts
+C -Row: 199357 posts
+B -Row: 31224 posts
+D -Row: 4786 posts
+A -Row: 1155 posts
+Rank the Columns based on the total number of instagram posts
+Column 2 : 196082 posts
+Column 3 : 25236 posts
+Column 4 : 6812 posts
+Column 1 : 5095 posts
+Column 5 : 3297 posts
+--- Totoal running time 48.84983 seconds ---
+
+real	0m49.811s
+user	3m0.385s
+sys	0m17.248s
