@@ -59,4 +59,4 @@ With running posts in bigInstagram,  we could indentify these posts around Melbo
 It takes about 50 seconds to run with 1n1c, 45 seconds with 1n8c and  46 with 2n8c (refer to output file).
 
 ## Authors
-- Lawrence luo -- * initial work *
+- Lawrence luo -- * Initial work *
