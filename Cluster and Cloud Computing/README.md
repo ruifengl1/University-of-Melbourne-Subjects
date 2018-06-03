@@ -7,6 +7,7 @@
 - [Lecture 4](#lecture-4)
 - [Lecture 5](#lecture-5)
 - [Lecture 6](#lecture-6)
+- [Lecture 7](#lecture-7***I)
 
 ---
 
@@ -429,6 +430,7 @@ three.example.com
 #### MongoDB Cluster Architecture
 
 ![MongoDB Cluster Architecture](images/MongoDBClusterArchitecture.png)
+```
 ****MongoDB replica set and shard:**
 
 - **replica set**
@@ -446,12 +448,13 @@ three.example.com
     - They DO NOT maintain a dataset
     -  Their primary function is to select the primary node
     - They do not store data and hence need no additional hardware
+```
 
 - Sharding is done at the replica set level, hence it involves more than one cluster (a shard is on top of a replica set)
 - Only the primary node in a replica set answers write requests, but read requests can -depending on the specifics of the configuration- be answered by every node (including secondary nodes) in the set
 - Updates flow only from the primary to the secondary
 - If a primary node fails, or discovers it is connected to a minority of nodes, a secondary of the same replica set is elected as the primary
--  Arbiters (MongoDB instances without data) can assist in breaking a tie in elections.
+- Arbiters (MongoDB instances without data) can assist in breaking a tie in elections.
 - Data are balanced across replica sets
 - Since a quorum has to be reached, it is better to have an odd number of voting members (the arbiter in this diagram is only illustrative)
 
@@ -479,21 +482,484 @@ three.example.com
 - Partition-tolerance: the cluster _keeps on operating_ when one or more nodes cannot communicate with the rest of the cluster
 
 **pick any two...
-![BrewersCAPTheorem](images/BrewersCAPTheorem.png)
+
+#### CAP Theorem and the Classification of Distributed Processing Algorithms
+
 ![CAP Theorem and the Classification of Distributed Processing Algorithms](images/CAPTheoremandtheClassificationofDistributedProcessingAlgorithms.png)
 
+##### Consistency and Availability: Two phase commit
+
+```
+**As its name implies, the coordinator arranges activities and synchronization between distributed servers. Saving data changes is known as a commit and undoing changes is known as a rollback. The two-phase commit is implemented as follows:
+
+- **Phase 1 - Each server that needs to commit data writes its data records to the log. If a server is unsuccessful, it responds with a failure message. If successful, the server replies with an OK message.
+
+- **Phase 2 - This phase begins after all participants respond OK. Then, the coordinator sends a signal to each server with commit instructions. After committing, each writes the commit as part of its log record for reference and sends the coordinator a message that its commit has been successfully implemented. If a server fails, the coordinator sends instructions to all servers to roll back the transaction. After the servers roll back, each sends feedback that this has been completed.
+```
+
+- it enforces consistency by:
+    - locking data that are within the transaction scope
+    - performing transactions on write-ahead logs
+    - completing transactions (commit) only when all nodes in the cluster have performed the transaction
+    - aborts transactions (rollback) when a partition is detected
+- procedure entails:
+    - reduced availability (data lock, stop in case of partition)
+    - enforced consistency (every database is in a consistent state, and all are left in the same state)
+
+Therefore, two-phase commit is a good solution when the cluster is co-located, less then good when it is distributed
+
+##### Consistency and Partition-Tolerance: Paxos
+
+```
+**Basic steps in Paxos:
+
+- Elect a node to be a Leader / Proposer
+- The Leader selects a value and sends it to all nodes (called Acceptors in Paxos) in an accept-request message. Acceptors can reply with reject or accept.
+- Once a majority of the nodes have accepted, consensus is reached and the coordinator broadcasts a commit message to all nodes.
+```
+
+- driven by consensus, and is both partitiontolerant and consistent
+- In Paxos, every node is either a proposer or an accepter :
+    - a proposer proposes a value (with a timestamp)
+    - an accepter can accept or refuse it (e.g. if the accepter receives a more recent value)
+- when a proposer has received a sufficient number of acceptances (a quorum is reached), and a confirmation message is sent to the accepters with the agreed value
+- Paxos clusters can recover from partitions and maintain consistency, but the smaller part of a partition (the part that is not in the quorum) will not send responses, hence the availability is compromised
+
+##### Availability and Partition-tolerance: Multi-Version Concurrency Control (MVCC)
+
+```
+Multiversion Concurrency Control (MVCC) enables snapshot isolation. Snapshot isolation means that whenever a transaction would take a read lock on a page, it makes a copy of the page instead, and then performs its operations on that copied page. This frees other writers from blocking due to a read locks held by other transactions.
+
+```
+
+- MVCC is a method to ensure availability (every node in a cluster always accepts requests), and some sort of recovery from a partition by reconciling the single databases with revisions (data are not replaced, they are just given a new revision number)
+- In MVCC, concurrent updates are possible without distributed locks (in optimistic locking only the local copy of the object is locked), since the updates will have different revision numbers; the transaction that completes last will get a higher revision number, hence will be considered as the current value.
+- In case of cluster partition and concurrent requests with the same revision number going to two partitioned nodes, both are accepted, but once the partition is solved, there would be a conflict. Conflict that would have to be solved somehow (CouchDB returns a list of all current conflicts, which are then left to be solved by the application).
+- MVCC relies on monotonically increasing revision numbers and, crucially, the preservation of old object versions to ensure availability (i.e. when an object is updated, the old versions can still be read).
+
+#### Document-oriented DBMS for Big data
+
+Relational DBMSs(fine-grained data)---->>ensuring consistency and availability using normalization but less partition-tolerant than coarse-grained data
+
+- Relational data model, including a person table, a telephone table, an email table
+- Document-oriented database, one document type only, with telephones numbers, email addresses, etc., nested as arrays in the same document
+
+#### MongoDB vs CouchDB Clusters
+
+- While CouchDB uses MVCC, MongoDB uses a hybrid two-phase commit (for replicating data from primary to secondary nodes) and Paxos-like in supporting network partition strategies
+- MongoDB, a network partition may segregate a primary into a partition with a minority of nodes. When the primary detects that it can only see a minority of nodes in the replica set, the primary steps down and becomes a secondary. Independently, a member in the partition that can communicate with a majority of the nodes (including itself) holds an election to become the new primary.
+
+#### Sharding
+
+- Sharding is the partitioning of a database “horizontally”, i.e. the database rows (or documents) are partitioned into subsets that are stored on different servers. Every subset of rows is called a shard.
+- Usually the number of shards is larger than the number of _replicas(number of copies of single data)_, and the number of nodes is larger than the replica number(A replica set contains several data bearing nodes and optionally one arbiter node, nodes including primary node and secondary and arbiter node)
+- Main advantage of a sharded database,  improvement of performance through the distribution of computing load across nodes and easier to move data files around, e.g. when adding new nodes to the cluster
+- different sharding strategies:
+  - _Hash sharding_: to distribute rows evenly across the cluster
+  - _Range sharding_: similar rows (say, tweets coming for the same area) that are stored on the same node (or subset of nodes)
+
+![Hash sharding](images/HashSharding.png)
+---
+![Range sharding](images/RangeSharding.png)
+
+#### Replication and Sharding
+
+- Replication is the action of storing the same row (or document) on different nodes to make the database fault-tolerant.
+- Replication and sharding can be combined with the objective of _maximizing availability while maintaining a minimum level of data safety(any failure)_.
+
+### MapReduce Algorithms
+
+- Particularly suited to parallel computing of the Single-Instruction, Multiple-Data type
+- [The first step (Map), distributes data across machines(machine for map, distributed load to clusers/computers), while the second (Reduce) hierarchically summarizes them until the result is obtained.](https://www.quora.com/How-does-Map-Reduce-exactly-work-And-what-functions-run-on-which-machines-architecturally)
+- Apart from parallelism, its advantage lies in _moving the process to where data are_, greatly reducing network traffic.
+- it is horizontally scalable
+
+![mapReduce_lecture](images/mapReduce_lecture.png)
+
+****More specific**
+![map reduce](images/mapReduce.png)
+
+### Introduction to CouchDB
+
+#### CouchDB Main Features
+
+- Document-oriented DBMS, where documents are expressed in JavaScript Object Notation (JSON)
+- HTTP ReST API
+- Web-based admin interface
+- Web-ready: since it talks HTTP and produces JSON (it can also produce HTML or XML), it can be both the data and logic tier of a three-tier application, hence avoiding the marshaling and unmarshaling of data objects
+- Support for MapReduce algorithms, including aggregation at different levels
+- avaScript as the default data manipulation language
+- Run Mango queries (MongoDB query language), which can use indexes for better performance
+- Schema-less data model with JSON as the data definition language
+- Support for replication
+- Support for sharding
+- Support for clustering
+
+##### Database
+
+- A CouchDB instance can have many databases; each database can have its own set of functions, and can be stored in different shards
+- In every CouchDB instance there are system databases. These are prefixed by underscore, such as _users
+
+##### Querying a CouchDB Databas
+
+Two mechanisms to select a set of _documents (json structure, including multiple types of data)_ that exhibit certain features
+
+- MapReduce Views: results of MapReduce processes that are written as B-tree indexes to disk and become part of the database. Views are fast, but inflexible and use a lot of storage. Views are used for a number of reasons, including:
+
+```
+    - Indexing and querying data from stored objects
+    - Producing lists of data on specific object types
+    - Producing tables and lists of information based on your stored data
+    - Extracting or filtering information from the database
+    - Calculating, summarizing or reducing the information on a collection of stored data
+```
+
+- Mango Queries: queries expressed in JSON, following the MongoDB queries syntax (Mango queries can also use B-tree indexes to speed-up computations)(For example, Json will retrieves all the indexes from the database)
+
+![Mango Queries](images/MangoQueries.png)
+
+- Mango Indexes,to speed-up queries, Mango can use B-tree indexes on attributes
+
+![Mango Indexes](images/MangoIndexes.png)
+##### Views
+
+- views are not influenced by the state of the system
+    - defined in languages other than JavaScript
+    - cannot be passed custom parameters, either during computation or during selection
+    - Computation of views can be influenced only by the document itself
+- this ensures consistency of results
+
+##### List and Show Functions
+
+Views are limited, since they can produce only JSON and cannot
+change their behavior. To address these shortcomings, CouchDB offers List and Show functions
+
+- Both these two classes of functions can modify their behavior when HTTP request parameters are sent, and both can produce non-JSON output
+- List functions transform a view into a list of something (can be a list of HTML ```<li>``` tags, or a list of ```<doc>``` XML tags.
+- Show functions transform an entire document into something else (like an entire HTML page).
+- To sum up:
+    - Show functions are applied to the output of a single document query
+    - List functions are applied to the output of Views
+    - List and Show functions can be seen as the equivalent of JEE servlets
 
 
+## Lecture 7
 
-
-
-
-
-
-
-### Introduction to SOA
+### Introduction to SOA (Service-oriented architecture)
 
 **What's in an Architecture?**
 
 - A system architecture is the way different software components are distributed on computing devices, and the way in which they interact with each other
 - standard graphic way, UML deployment diagram, which is diagrams used to describe the physical components (hardware), their distribution, and association.
+
+```
+**Service-Oriented Architecture: A service-oriented architecture is a style of software design where services are provided to the other components by application components, through a communication protocol over a network. The basic principles of service-oriented architecture are independent of vendors, products and technologies.[1] A service is a discrete unit of functionality(independent functionality) that can be accessed remotely and acted upon and updated independently, such as retrieving a credit card statement online.
+
+A service has four properties from SOA:
+- It logically represents a business activity with a specified outcome.
+- It is self-contained.
+- It is a black box for its consumers.
+- It may consist of other underlying services.
+
+Different services can be used in conjunction to provide the functionality of a large software application. Service-oriented architecture is less about how to modularize an application, and more about how to compose an application by integrating distributed, separately-maintained and deployed software components. It is enabled by technologies and standards that make it easier for components to communicate and cooperate over a network, especially an IP network.
+
+```
+![SOA_IBM](images/SOA_IBM.gif)
+
+**Why SOA?**
+
+- When an architecture is completely contained within the same machine, components communicate through function calls or object instantiations. However, when components are distributed, function calls and object instantiations cannot always be used directly.
+- Services are often used for this._Every system in a SOA should be considered as autonomous, but network-reachable and inter-operable through services._
+
+**SOA Core Ideas:**
+
+- _A set of services_ that a business wants to provide to their customers, partners, or other areas of an organization
+- An architectural pattern that requires a service provider, mediation, and service requestor with a service description
+- _A set of architectural principles, patterns and criteria_ that address characteristics such as modularity, encapsulation, loose coupling, separation of concerns, reuse and composability
+- _A programming model_ complete with standards, tools and technologies that supports web services, ReST services or other kinds of services
+- _A middleware solution_ optimized for service assembly, orchestration, monitoring, and management
+
+**SOA Principles:**
+
+- Standardized service contract: Services adhere to a communications agreement, as defined collectively by one or more service-description documents.
+- Service loose coupling: Services maintain a relationship that minimizes dependencies and only requires that they maintain an awareness of each other.
+- Service abstraction: Beyond descriptions in the service contract, services hide logic from the outside world.
+- Service reusability: Logic is divided into services with the intention of promoting reuse.
+- Service autonomy: Services have control over the logic they encapsulate.
+- Service statelessness: Services minimize resource consumption by deferring the management of state information when necessary.
+- Service discoverability: Services are supplemented with communicative meta data by which they can be effectively discovered and interpreted.
+- Service composability: Services are effective composition participants, regardless of the size and complexity of the composition
+- Service granularity: A design consideration to provide optimal scope at the right granular level of the business functionality in a service operation.
+- Service normalization: Services are decomposed and/or consolidated to a level of normal form to minimize redundancy. In some cases, services are denormalized for specific purposes, such as performance optimization, access, and aggregation.
+- Service location transparency: The ability of a service consumer to invoke a service regardless of its actual location in the network.
+
+**SOA for the Web:** (Web services can implement a service-oriented architecture)
+
+- Two main flavors
+    - ReSTful Web Services
+    - SOAP/WS
+- Both uses HTTP, hence can run over the web (although SOAP/ WS can run over other protocols as well)
+- They are by far the most used (especially ReST) but not the only ones:
+    - Geospatial services
+    - Health services
+    - SDMX
+
+```
+RESTful is architectural style  and SOAP is protocol, both are used to access web services. Web services as the exchange of SOAP-based messages between systems and REST is a type of web service in which the user simply accesses a URL, and the response is a straight XML document
+
+SOAP provides the envelope for sending Web Services messages over the Internet/Internet. SOAP use XML (Extensible Markup Language) over HTTP as the intermediate language for exchanging data between applications.
+(https://www.guru99.com/soap-simple-object-access-protocol.html)
+
+These SOAP messages move from one system to another, usually via HTTP. The receiving system interprets the message, does what it's supposed to do, and sends back a response in the form of another SOAP message.
+
+Universal Resource Identifiers (URI) in REST and are used through the header operations of HTTP. HTTP is the protocol used in REST. The HTTP requests are used in order to read and write data. The four methods which are GET, PUT, POST and DELETE are used in REST based web services. Therefore, the HTTP protocol is used by REST in order to perform the four operations which are create, read, update and delete (CRUD). In order to interact with the resource the standard methods of HTTP are used. The use of different methods present in HTTP protocol are used for the following purpose; GET method is used to retrieve the required resource, POST method is used to create the resource successfully, in order to update the resource PUT method is used and to remove the resource that is no more required can be removed using the method known as DELETE. 
+
+
+```
+
+![SOAP](images/SOAP.png)
+![SOAP_example](images/SOAP_example.png)
+![REST_XML](images/REST_XML.png)
+
+#### SOAP/WS vs ReST
+
+- Two different architectural design to call services over HTTP
+- SOAP/WS is built upon the paradigm of the Remote Procedure Call; practically, a language independent function call that spans another system
+- ReST is centered around resources, and the way they can be manipulated (added, deleted, etc.) remotely
+- ReST is more of a style of using HTTP than a separate protocol, while SOAP/WS is a stack of protocols that covers every aspect of using a remote service, from service discovery, to service description, to the actual request/response
+- ReST makes use of the different HTTP Methods (GET, POST, PUT, DELETE, etc)
+
+
+##### SOAP
+
+```
+**UDDI: The idea was to provide a way for companies to register their 
+services in a global registry, and search that global registry for 
+services they may be interested in using
+```
+
+- UDDI: The Uniform Description Discovery and Integration is a protocol to access a registry of services
+- WS-* (web service specifications on top of others) Refers to additional attendant standards for SOAP web services
+
+![WebServicesSpecifications](images/WebServicesSpecifications.png)
+
+- These extensions(UDDI and WS-*) go in the SOAP headers for additional functionality
+- WSDL: The _Web Services Description Language_ is an XML based interface description language that is used for describing the functionality offered by a web service.
+- WSDL provides a machine-readable description of how the service can be called, what parameters it expects, and what data structures it returns. (NOTE: WSDL defines ports, but these are service ports -endpoints- not to be confused with HTTP ports -which are numbers.)
+
+### The OGC Stack
+
+The OpenGIS Consortium (OGC) is a non-profit group of organizations (companies, universities, state agencies, etc.) that share the common goal of defining standards for all things geo-spatial,e.g data with geographic information. It defined a set of standards that _define a family of SOAPbased web-services to support access to geo-spatial data_
+
+OGC web-services cover different ways of interacting with geo-spatial data:
+
+- Finished maps (as the ones you see on Google Maps)
+- Vector data (just the geometry, in practice a collection of points)
+- Raster data (a mathematical matrix)
+- Metadata (information about the geo-spatial data available)
+
+---
+For each of this ways, there is one or more OGC Services:
+
+- Finished maps: WMS, WMTS, SLD
+- Vector data: WFS, FE
+- Raster data: WCS
+- Metadata: CSW
+- Processing (remote execution/computation on data): WPS
+
+#### Vector data
+
+The relevant service for dealing with vector data is WFS (Web Feature Service), which allows the selection of geospatial data using their location and/or their contents.
+
+```
+**
+Web Feature Service (WFS) Interface Standard provides an interface 
+allowing requests for geographical features across the web using 
+platform-independent calls
+
+One can think of geographical features as the "source code" behind 
+a map, whereas the WMS interface or online tiled mapping portals like 
+Google Maps return only an image, which end-users cannot edit or 
+spatially analyze
+```
+
+In OGC-speak, a feature is a vector description of a geographic object and associated data (say: the location of a restaurant, its name, address,type, etc). A set of homogeneous features is a feature type (say, all the restaurants).
+
+Interaction with a WFS data source with following steps:
+
+- Retrieving the list of feature types available from that service
+- Retrieving information (metadata,which is "location" and etc) about a feature type
+- Retrieving the actual data(data for location,127 lect st,xxxx)
+
+##### Vector Data Selection in WFS
+
+WFS is a SOAP-style of Web Service, and it makes heavy use of XML to request services and to represent returned data (although returned data can be expressed in other format, such as JSON).
+
+Interaction translate into WFS requests:
+
+- Retrieving the list of feature types available: GetCapabilities
+- Retrieving information about a feature type: DescribeFeatureType
+- Retrieving the actual data: GetFeatur
+
+** AURIN QGIS play as WFS Client
+
+### ReST
+
+![NameInReST](images/NameInReST.png)
+
+1. Client requests Resource through Identifier (URL)
+2. Server/proxy sends representation of Resource
+3. This puts the client in a certain state.(Change from request state to obtain state)
+4. Representation contains URLs allowing navigation.
+5. Client follows URL to fetch another resource.
+6. This transitions client into yet another state.
+7. Representational State Transfer!
+
+** each link is representation of different pages(which is state)
+
+#### Resource-Oriented Architecture (ROA)
+
+![ROA_basic](images/ROA_basic.jpg)
+
+```
+
+A resource-oriented architecture (ROA) is the structural design 
+supporting the internetworking of resources. A resource is any entity 
+that can be identified and assigned a uniform resource identifier (URI)
+
+These resources are software components (discrete pieces of code and/or 
+data structures) which can be reused for different purposes. ROA design 
+principles and guidelines are used during the phases of software 
+development and system integration.
+
+REST takes a resource-based approach to web-based interactions. With REST,
+you locate a resource on the server, and you choose to either update that 
+resource, delete it or get some information about it.
+
+With SOAP, the client doesn't choose to interact directly with a resource,
+but instead calls a service, and that service mitigates access to the 
+various objects and resources behind the scenes.
+
+```
+
+A ROA is a way of turning a problem into a RESTful web service: an arrangement of URIs, HTTP, and XML that works like the rest of the Web
+
+To make it ROA, user might:
+
+- want to create a hypertext link to it
+- make or refute assertions about it
+- retrieve or cache a representation of it
+- include all or part of it by reference into another representation
+- annotate it
+- or perform other operations on it
+
+##### Mapping Actions to HTTP Methods
+
+![MappingActions](images/MappingActions.png)
+
+- PUT should be used when target resource url is known by the client
+- POST should be used when target resource URL is server generated.
+
+##### A Generic ROA Procedure
+ 
+1. Figure out the data set
+2. Split the data set into resources and for each kind of resource:
+3. Name the resources with URIs
+4. Expose a subset of the uniform interface
+5. Design the representation(s) accepted from the client
+6. Design the representation(s) served to the client
+7. Integrate this resource into existing resources, using hypermedia links and forms to link these resources( basic ReST)
+
+##### ReST Best Practices
+
+- Keep your URIs short – and create URIs that don’t change.
+- URIs should be opaque identifiers that are meant to be discovered by following hyperlinks, not constructed by the client.
+- Use nouns, not verbs in URLs
+
+```
+The URI generic syntax consists of a hierarchical sequence of five 
+components:
+
+URI = scheme:[//authority]path[?query][#fragment]
+
+authority = [userinfo@]host[:port]
+
+Examples of URI:
+
+           userinfo      host      port
+          ┌───┴──┐ ┌──────┴──────┐ ┌┴┐
+  https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top
+  └─┬─┘   └─────────────┬────────────┘└───────┬───────┘ └────────────┬────────────┘ └┬┘
+ scheme             authority               path                   query         fragment
+
+  ldap://[2001:db8::7]/c=GB?objectClass?one
+  └─┬┘   └─────┬─────┘└─┬─┘ └──────┬──────┘
+ scheme    authority  path       query
+
+  mailto:John.Doe@example.com
+  └──┬─┘ └─────────┬────────┘
+  scheme         path
+
+```
+
+- Make all HTTP GETs side-effect free. Doing so makes the request "safe".
+- Use links in your responses to requests! Doing so connects your response with other data. It enables client applications to be "self-propelled". That is, the response itself contains info about "what's the next step to take". Contrast this to responses that do not contain links. Thus, the decision of "what's the next step to take" must be made out-of-band.
+- Minimize the use of query strings. For example:
+
+![queryString](images/queryString.png)
+
+- Use HTTP status codes to convey errors/success
+- In general, keep the REST principles in mind. In particular:
+    - Addressability
+    - Uniform Interface
+    - Resources and Representations instead of RPC
+    - HATEOAS(Including hypermedia links with the responses)
+
+##### Uniform Interface
+
+Four more constraints:
+
+- Identification of Resources: All important resources are identified by one (uniform) resource identifier mechanism (hyperlinks internally)
+- Manipulation of Resources through representations: Each resource can have one or more representations, application/xml, application/json, text/html, etc. Clients and servers negotiate to select representation.
+- Self-descriptive messages: Requests and responses contain not only data but additional headers describing how the content should be handled. Such as if it should be cached, authentication requirements, etc. Access methods (actions) mean the same for all resources (universal semantics)
+
+##### HATEOAS
+
+- Hyper Media as the Engine of Application State
+- Resource representations contain links to identified resources
+- links make interconnected resources navigable
+- without navigation, identifying new resources is servicespecific (SOAP)
+- RESTful applications navigate instead of calling
+
+##### HTTP Methods
+
+- Safe methods: Don't change the resource on the server side. For example using a GET or a HEAD request on a resource URL should NEVER change the resource. Safe methods can be cached and prefetched without any repercussions or side-effect to the resource
+- Idempotent methods: These are methods which are safe from multiple calls i.e. they produce same result irrespective of how many times you call them. They change the resource in Server every time you call them but the end result is always same
+
+```
+int i = 30; // idempotent
+
+i++; // not idempotent
+```
+
+- GET, OPTIONS, HEAD – Safe
+- PUT, DELETE – Idempotent
+- POST – Neither safe nor idempotent
+
+
+### Versioning Systems
+
+- Managing changes to documents, computer programs, large web sites, and other collections of information
+- Work simultaneously on big projects and keep track of changes
+- Be able to simply revert back to a specific checkpoint/milestone in any project
+- Create necessary redundancy by duplicating codes and resources to avoid data loss
+
+#### Types of Code Versioning Systems
+
+- Local (Revision Control System (RCS))
+    - Storing the difference between these files(different versions) in a database
+- Centralised (Concurrent Versions System (CVS), Subversion (SVN), Vesta)
+    - Any local machine can check out any version of these files from the central server and uploaded back (aka committing) to central server.
+- Decentralised (Git, Mercurial, Bitbucket )
+
+![CodeVersioningSystems](images/CodeVersioningSystems.png)
