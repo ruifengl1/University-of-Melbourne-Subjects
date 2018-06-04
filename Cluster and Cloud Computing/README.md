@@ -8,6 +8,8 @@
 - [Lecture 5](#lecture-5)
 - [Lecture 6](#lecture-6)
 - [Lecture 7](#lecture-7)
+- [Lecture 8](#lecture-8)
+- [Lecture 9](#lecture-9)
 
 ---
 
@@ -705,14 +707,31 @@ Different services can be used in conjunction to provide the functionality of a 
     - SDMX
 
 ```
-RESTful is architectural style  and SOAP is protocol, both are used to access web services. Web services as the exchange of SOAP-based messages between systems and REST is a type of web service in which the user simply accesses a URL, and the response is a straight XML document
+RESTful is architectural style  and SOAP is protocol, both are used to 
+access web services. Web services as the exchange of SOAP-based messages 
+between systems and REST is a type of web service in which the user 
+simply accesses a URL, and the response is a straight XML document
 
-SOAP provides the envelope for sending Web Services messages over the Internet/Internet. SOAP use XML (Extensible Markup Language) over HTTP as the intermediate language for exchanging data between applications.
+SOAP provides the envelope for sending Web Services messages over the 
+Internet/Internet. SOAP use XML (Extensible Markup Language) over HTTP 
+as the intermediate language for exchanging data between applications.
 (https://www.guru99.com/soap-simple-object-access-protocol.html)
 
-These SOAP messages move from one system to another, usually via HTTP. The receiving system interprets the message, does what it's supposed to do, and sends back a response in the form of another SOAP message.
+These SOAP messages move from one system to another, usually via HTTP. 
+The receiving system interprets the message, does what it's supposed to 
+do, and sends back a response in the form of another SOAP message.
 
-Universal Resource Identifiers (URI) in REST and are used through the header operations of HTTP. HTTP is the protocol used in REST. The HTTP requests are used in order to read and write data. The four methods which are GET, PUT, POST and DELETE are used in REST based web services. Therefore, the HTTP protocol is used by REST in order to perform the four operations which are create, read, update and delete (CRUD). In order to interact with the resource the standard methods of HTTP are used. The use of different methods present in HTTP protocol are used for the following purpose; GET method is used to retrieve the required resource, POST method is used to create the resource successfully, in order to update the resource PUT method is used and to remove the resource that is no more required can be removed using the method known as DELETE. 
+Universal Resource Identifiers (URI) in REST and are used through the 
+header operations of HTTP. HTTP is the protocol used in REST. The HTTP 
+requests are used in order to read and write data. The four methods 
+which are GET, PUT, POST and DELETE are used in REST based web services. 
+Therefore, the HTTP protocol is used by REST in order to perform the 
+four operations which are create, read, update and delete (CRUD). In 
+order to interact with the resource the standard methods of HTTP are 
+used. The use of different methods present in HTTP protocol are used for 
+the following purpose; GET method is used to retrieve the required 
+resource, POST method is used to create the resource successfully, in 
+order to update the resource PUT method is used and to remove the resource that is no more required can be removed using the method known as DELETE. 
 
 
 ```
@@ -957,9 +976,417 @@ i++; // not idempotent
 #### Types of Code Versioning Systems
 
 - Local (Revision Control System (RCS))
-    - Storing the difference between these files(different versions) in a database
+    - Storing the difference between these files(different versions) in a database. However, only single developer work
 - Centralised (Concurrent Versions System (CVS), Subversion (SVN), Vesta)
-    - Any local machine can check out any version of these files from the central server and uploaded back (aka committing) to central server.
+    - Any local machine can check out any version of these files from the central server and uploaded back (aka committing) to central server. However, outage would stop collaboration
 - Decentralised (Git, Mercurial, Bitbucket )
 
 ![CodeVersioningSystems](images/CodeVersioningSystems.png)
+
+## Lecture 8
+
+**Challenges of Big Data Analytics:**
+
+- Reading and writing distributed datasets
+- Preserving data in the presence of failing data nodes
+- Supporting the execution of MapReduce tasks
+- Being fault-tolerant (a few failing compute nodes may slow down the processing, but not stop it)
+- Coordinating the execution of tasks across a cluster
+
+### Apache Hadoop
+
+Started as a way to distribute files over a cluster and execute MapReduce tasks, and additional tools added for further functionality
+
+#### Hadoop Distributed File System (HDFS)
+
+The core of Hadoop is a fault tolerant file system that has been explicitly designed to span many nodes.
+
+HDFS blocks are much larger than blocks used by an ordinary file system (4 kB versus 128 MB)
+
+- Reduced need for memory to store information about where the blocks are (metadata)
+- More efficient use of the network (with a large block, a reduced number of connections need to be kept open)
+- Reduced need for seek operations on big files
+- Efficient when most data of a block have to be process (reduce overheads)
+
+```
+
+HDFS implement a distributed file system that provides high-performance
+access to data across highly scalable Hadoop clusters.
+
+1.When HDFS takes in data, it breaks the information down into separate
+blocks and distributes them to different nodes in a cluster, thus
+enabling highly efficient parallel processing.
+
+2. The file system replicates, or copies, each piece of data multiple
+times and distributes the copies to individual nodes, placing at least
+one copy on a different server rack than the others. As a result, the
+data on nodes that crash can be found elsewhere within a cluster. This
+ensures that processing can continue while data is recovered.
+(fault-tolerant)
+
+3.The HDFS architecture consists of clusters, each of which is accessed
+through a single NameNode software tool installed on a separate machine
+to monitor and manage the that cluster's file system and user access
+mechanism. The other machines install one instance of DataNode to manage
+cluster storage.
+
+
+**Fault tolerance is the property that enables a system to continue 
+operating properly in the event of the failure
+
+```
+
+#### HDFS Architecture
+
+![HDFS](images/HDFS.png)
+
+A HDFS file is a collection of blocks stored in _datanodes_,
+with metadata (such as the position of those blocks) that is
+stored in _namenodes_
+
+#### Hadoop Resource Manager (YARN)
+
+- The other main component of Hadoop is the MapReduce task manager, YARN (Yet Another Resource Negotiator)
+- YARN deals with executing MapReduce jobs on a cluster. It is composed of a _central Resource Manager (on the master)_ and _many Node Managers that reside on slave machines_.
+- Every time a MapReduce job is scheduled for execution on a Hadoop cluster, YARN starts an Application Master that negotiates resources with the Resource Manager and starts Containers on the slave nodes (Based on allocated resources (containers) ApplicationMaster request NodeManager to start Containers, resulting in executing task on a node.)
+
+```
+All resource utilization on a particular node is taken care by Node
+Manager. Resource manager looks at overall cluster resource, and
+application manager manages progress of application.
+
+1. NodeManagers take instructions from the ResourceManager and manage
+resources available on a single node.
+
+2.ApplicationMasters are responsible for negotiating resources with the
+ResourceManager and for working with the NodeManagers to start the
+containers.
+```
+
+#### Apache Spark
+
+##### Why Spark?
+
+- While Hadoop MapReduce works well, it is geared towards performing relatively simple jobs on large datasets.
+- However, when complex jobs are performed (say, machine learning or graph-based algorithms), there is a _strong incentive for caching data in memory and in having finer-grained control on the execution of jobs_.
+- Apache Spark was designed to _reduce the latency inherent in the Hadoop approach for the execution of MapReduce jobs_.
+- Spark can operate within the Hadoop architecture, using YARN and Zookeeper to manage computing resources, and storing data on HDFS.
+
+```
+Hadoop Mapreduce vs Spark
+
+The key difference between them lies in the approach to processing: 
+Spark can do it in-memory, while Hadoop MapReduce has to read from and 
+write to a disk. As a result, the speed of processing differs 
+significantly – Spark may be up to 100 times faster. However, the 
+volume of data processed also differs: Hadoop MapReduce is able to work 
+with far larger data sets than Spark.
+
+Tasks Hadoop MapReduce is good for:
+- Linear processing of huge data sets. Hadoop MapReduce allows parallel 
+processing of huge amounts of data. It breaks a large chunk into smaller 
+ones to be processed separately on different data nodes and 
+automatically gathers the results across the multiple nodes to return a 
+single result. In case the resulting dataset is larger than available 
+RAM, Hadoop MapReduce may outperform Spark.
+
+- Economical solution, if no immediate results are expected. Our Hadoop 
+team considers MapReduce a good solution if the speed of processing is 
+not critical. For instance, if data processing can be done during night 
+hours, it makes sense to consider using Hadoop MapReduce
+
+Tasks Spark is good for:
+- Fast data processing. In-memory processing makes Spark faster than 
+Hadoop MapReduce – up to 100 times for data in RAM and up to 10 times 
+for data in storage.
+
+- Iterative processing. If the task is to process data again and again – 
+Spark defeats Hadoop MapReduce. Spark’s Resilient Distributed Datasets 
+(RDDs) enable multiple map operations in memory, while Hadoop MapReduce 
+has to write interim results to a disk.
+
+- Near real-time processing. If a business needs immediate insights, 
+then they should opt for Spark and its in-memory processing.
+
+- Graph processing. Spark’s computational model is good for iterative 
+computations that are typical in graph processing. And Apache Spark has 
+GraphX – an API for graph computation.
+
+-Machine learning. Spark has MLlib – a built-in machine learning library,
+while Hadoop needs a third-party to provide it. MLlib has out-of-the-box 
+algorithms that also run in memory. Besides, there is a possibility of 
+tuning and adjusting them.
+
+- Joining datasets. Due to its speed, Spark can create all combinations 
+faster, though Hadoop may be better if joining of very large data sets 
+that requires a lot of shuffling and sorting is needed.
+
+**In-memory processing means data stored in RAM for processing
+
+```
+
+#### Spark Architecture
+
+![Spark Architecture](images/SparkArchitecture.png)
+
+- Spark is mostly written in Scala.the APIs of Spark can be accessed by different languages: R, Python, Java
+- Scala is a multi-paradigm language (both functional and object-oriented) that runs on the Java Virtual Machine and can use Java libraries and Java objects.
+
+#### Spark Runtime Architecture
+
+Applications in Spark are composed of different components including:
+
+- **Job**: is the overall processing that Spark is directed to perform by a driver program
+
+```
+The job is parallel computation consisting of multiple tasks that get 
+spawned in response to actions in Apache Spark.
+```
+
+- **Task**: is a single transformation operating on a single partition of data on a single node
+
+```
+A task is a unit of work that is sent to the executor. Each stage has 
+some task, one task per partition. The Same task is done over different 
+partitions of RDD.
+```
+
+- **Stage**: is a set of tasks operating on a single partition
+- **Executors**: the processes in which tasks are executed
+- **Cluster Manager**: the process assigning tasks to executors
+
+```
+Spark relies on cluster manager to launch executors and in some cases, 
+even the drivers are launched through it
+```
+
+- **Driver program**: the main logic of the application
+
+```
+The main() method of the program runs in the driver. The driver is the 
+process that runs the user code that creates RDDs, and performs 
+transformation and action, and also creates SparkContext. When the Spark 
+Shell is launched, this signifies that we have created a driver program. 
+On the termination of the driver, the application is finished.
+
+The driver program splits the Spark application into the task and 
+schedules them to run on the executor
+```
+
+- A Job is composed of more than one stage when data are to be transferred amongst nodes (shuffling)
+- The fewer the number of stages, the faster the computation (shuffling data across the cluster is slow)
+
+- **Spark application**: Driver program + Executors
+
+```
+The Spark application is a self-contained computation that runs 
+user-supplied code to compute a result.
+```
+
+- **Spark Context**: the general configuration of the job
+    - 
+
+```
+Works of Spark Context are:
+- Getting the current status of spark application
+- Canceling the job
+- Canceling the Stage
+- Running job synchronously
+- Running job asynchronously
+- Accessing persistent RDD
+- Unpersisting RDD
+- Programmable dynamic allocation
+```
+
+##### Local Mode
+
+In local mode, every Spark component runs within the same
+JVM. However, the Spark application can still run in parallel,
+as there may be more than one executor active. (Local mode
+is good when developing/debugging)
+
+![Local Mode](images/LocalMode.png)
+```
+ In this non-distributed single-JVM deployment mode, Spark spawns all 
+ the execution components - driver, executor, LocalSchedulerBackend, and 
+ master - in the same single JVM
+```
+##### Cluster Mode
+
+In cluster mode, every component, including the driver program, is executed on the cluster; hence, upon launching, the job can run autonomously. This is the common way of running non-interactive Spark jobs.
+![Cluster Mode](images/ClusterMode.png)
+
+##### Client Mode
+
+In client mode, the driver program talks directly to the executors on the worker nodes. Therefore, the machine hosting the driver program has to be connected to the cluster until job completion. Client mode must be used when the applications are interactive, as happens in the R, Python or Scala Spark shells.
+![Client Mode](images/ClientMode.png)
+
+##### Spark Context
+
+- The deployment mode is set in the Spark Context, which is also used to set the configuration of a Spark application, including the cluster it connects to in cluster mode.
+- Spark Contexts can also be used to tune the execution by setting the memory, or the number of executors to use.
+
+#### Resilient Distributed Dataset
+
+```
+- Resilient Distributed Datasets (RDD) is a fundamental data structure
+of Spark.
+- It is an immutable distributed collection of objects. Each dataset in
+RDD is divided into logical partitions, which may be computed on different nodes of the cluster.
+- Formally, an RDD is a read-only, partitioned collection of records.
+```
+
+Resilient Distributed Datasets (RDDs) are the way data are stored in Spark during computation, and understanding them is crucial to writing programs in Spark:
+
+- Resilient (data are stored redundantly, hence a failing node would not affect their integrity)
+- Distributed (data are split into chunks, and these chunks are sent to different nodes)
+- Dataset (a dataset is just a collection of objects, hence very generic)
+
+##### How to build an RDD
+
+```
+1. Parallelized collection (parallelizing)
+RDDs are generally created by parallelized collection i.e. by taking an
+existing collection in the program and passing it to SparkContext’s
+parallelize() method.
+
+
+scala> val no = Array(1, 2, 3, 4, 5,6,7,8,9,10)
+
+scala> val noData = sc.parallelize(no)
+
+
+2. External Datasets (Referencing a dataset)
+Distributed dataset can be formed from any data source supported by 
+Hadoop, including the local file system, HDFS, Cassandra, HBase etc. In 
+this, the data is loaded from the external dataset.
+
+scala> val data = sc.textFile("data.txt")
+
+```
+
+##### Properties of RDDs
+
+- RDDs are immutable, once defined, they cannot be changed (this greatly simplifies parallel computations on them, and is consistent with the functional programming paradigm)
+- RDDs are transient, they are meant to be used only once, then discarded (but they can be cached, if it improves performance)
+- RDDs are lazily-evaluated, the evaluation process happens only when data cannot be kept in an RDD, as when the number of objects in an RDD has to be computed, or an RDD has to be written to a file (these are called actions), but not when an RDD are transformed into another RDD (these are called transformations)
+
+## Lecture 9
+
+```
+A Virtual Machine Monitor/Hypervisor (VMM) is a software program that enables the creation, management and governance of virtual machines (VM) and manages the operation of a virtualized environment on top of a physical host machine.VMM manages the backend operation of these VMs by allocating the necessary computing, memory, storage and other input/output (I/O) resources.VMM also provides a centralized interface for managing the entire operation, status and availability of VMs that are installed over a single host or spread across different and interconnected hosts
+```
+
+- Virtual Machine Monitor/Hypervisor
+    - The environment of the VM should appear to be the same as the physical machine
+    - Minor decrease in performance only
+    - Appears as though in control of system resources
+- Virtual Machine: A representation of a real machine using hardware/software that can host a guest operating system
+- Guest Operating System: An operating system that runs in a virtual machine environment that would otherwise run directly on a separate physical system
+
+```
+Guest OS is what you have created in the virtual machine and host is 
+what your laptop or pc actually run. Host OS uses the actual hardware 
+for the working whereas the Guest OS uses the virtual hardware like 
+number of cores and type and size of hard drive defined by the user 
+while adding a virtual machine.
+
+Guest and Host OS works on the configurations used by you, if you user 
+higher amount of cores/ threads in setting your virtual machine the 
+Guest OS will get higher speed.
+
+**I installed  Virtual Machine say VirtualBox (hypervisor) and then 
+deployed a centos and a redhat os inside that as guest OS.
+
+```
+
+![VM](images/VM.png)
+
+### What Happens in a VM
+
+![HappensinaVM](images/HappensinaVM.png)
+
+- VMDK (Virtual Machine Disk): is a file format that describes containers for virtual hard disk drives to be used in virtual machines (virtual disk)
+
+```
+Th descriptor file describes the size and geometry of the virtual disk 
+file
+```
+
+- VHD (virtual disk)
+
+```
+VHD (Virtual Hard Disk) is a file format which represents a virtual hard 
+disk drive (HDD). It may contain what is found on a physical HDD, such 
+as disk partitions and a file system, which in turn can contain files 
+and folders. It is typically used as the hard disk of a virtual machine.
+```
+
+- qcow2 (QEMU Copy On Write) file format for disk image files used by QEMU. It uses a disk storage optimization strategy that delays allocation of storage until it is actually needed.
+
+### Motivation
+
+- Server Consolidation
+    - Increased utilisation
+    - Reduced energy consumption
+- Personal virtual machines can be created on demand
+    - No hardware purchase needed
+    - Public cloud computing
+- Security/Isolation
+    - Share a single machine with multiple users
+- Hardware independence
+    - Relocate to different hardware
+
+
+### Classification of Instructions
+
+- Privileged Instructions: instructions that trap if the processor is in user mode and do not trap in kernel mode(which means instructions only works in kernel mode)
+
+```
+Privileged instruction is an instruction (usually in machine code) that can be executed only by the operating system (in kernel) in a specific mode, e.g. read/write
+```
+
+- Sensitive Instructions: instructions whose behaviour depends on the mode or configuration of the hardware
+    - Different behaviours depending on whether in user or kernel mode
+        - e.g. POPF interrupt (for interrupt flag handling)
+```
+Those instructions that interact with hardware
+Sensitive instructions, which change the underlying resources (e.g. 
+doing I/O or changing the page tables) or observe information that 
+indicates the current privilege level (thus exposing the fact that the 
+guest OS is not running on the bare hardware)
+For example, Software Interrupt
+
+```
+
+- Innocuous Instructions: instructions that are neither privileged nor sensitive
+    - Read data, add numbers etc
+
+### Popek and Goldberg's Theorem
+
+a virtual machine monitor may be constructed if the set of sensitive instructions for that computer is a subset of the set of privileged instructions
+
+```
+Most modern operating systems use level 0 for the kernel/executive, and 
+use level 3 for application programs. Any resource available to level n 
+is also available to levels 0 to n, so the privilege levels are rings. 
+When a lesser privileged process tries to access a higher privileged 
+process, a General Protection Fault is reported by the OS.
+
+Programs that run in Ring 0 can do anything with the system, and code 
+that runs in Ring 3 should be able to fail at any time without impact to 
+the rest of the computer system. Ring 1 and Ring 2 are rarely used
+```
+
+- Ring 0 is the level with the most privileges and interacts most directly with the physical hardware such as the CPU and memory
+- Ring 1: Typically device drivers
+
+```
+A driver provides a software interface to hardware devices, enabling 
+operating systems and other computer programs to access hardware 
+functions
+```
+
+### Typical Virtualisation Strategy
+
+**VMM needs to support:**
