@@ -1340,33 +1340,54 @@ and folders. It is typically used as the hard disk of a virtual machine.
 
 ### Classification of Instructions
 
-- Privileged Instructions: instructions that trap if the processor is in user mode and do not trap in kernel mode(which means instructions only works in kernel mode)
+- Privileged Instructions: instructions that trap to use the real os if the processor is in user mode and do not trap in kernel mode(which means instructions only works in kernel mode)
 
 ```
-Privileged instruction is an instruction (usually in machine code) that can be executed only by the operating system (in kernel) in a specific mode, e.g. read/write
+If there are any instructions that could alter some parts of OS or any 
+of your resources ,IO systems ,they are marked “PRIVILEGED”
+
+If user gives privileged instructions, then it is traped
+If kernel gives privileged instructions, then it is not traped
 ```
 
 - Sensitive Instructions: instructions whose behaviour depends on the mode or configuration of the hardware
     - Different behaviours depending on whether in user or kernel mode
         - e.g. POPF interrupt (for interrupt flag handling)
 ```
-Those instructions that interact with hardware
-Sensitive instructions, which change the underlying resources (e.g. 
-doing I/O or changing the page tables) or observe information that 
-indicates the current privilege level (thus exposing the fact that the 
-guest OS is not running on the bare hardware)
-For example, Software Interrupt
+Sensitive Instructions are protected instructions as they provide
+control over hardware resource allocation. Virtual machines should not
+be allowed to execute these instructions directly because they can introduce unfairness
+
+Executing	    Real Processor Mode	    Action
+
+privileged	        user	         traps to real os
+privileged	        privileged	 executes fully
+sensitive	        user	         executes (reduced) effect (no trap)
+sensitive	        privileged	 executes (full) effect
 
 ```
 
-- Innocuous Instructions: instructions that are neither privileged nor sensitive
+- Innocuous Instructions: instructions that are neither privileged nor sensitive. Instructions does not change or affect system configuration or resources. A efficient VMM allows   the direct execution of the instructions.
     - Read data, add numbers etc
 
 ### Popek and Goldberg's Theorem
 
-a virtual machine monitor may be constructed if the set of sensitive instructions for that computer is a subset of the set of privileged instructions
+ For any conventional third-generation computer, an effective VMM may be constructed if the set of sensitive instructions for that computer is a subset of the set of privileged instructions.
+
+ ```
+ Intuitively, the theorem states that to build a VMM it is sufficient 
+ that all instructions that could affect the correct functioning of the 
+ VMM (sensitive instructions) always trap and pass control to the VMM. 
+ This guarantees the resource control property. Non-privileged 
+ instructions must instead be executed natively (i.e., efficiently). The 
+ holding of the equivalence property also follows.
+
+ ```
+
+![PrivilegeRings](images/PrivilegeRings.png)
 
 ```
+
 Most modern operating systems use level 0 for the kernel/executive, and 
 use level 3 for application programs. Any resource available to level n 
 is also available to levels 0 to n, so the privilege levels are rings. 
@@ -1390,3 +1411,288 @@ functions
 ### Typical Virtualisation Strategy
 
 **VMM needs to support:**
+
+**De-privileging:**
+
+- VMM emulates the effect of privileged instructions whose execution traps into the VMM(similar to OS).If the privileged instructions happens in GuestOS, then VMM trap it and emulate the function of the privileged instruction using handler to execute it or not based on privileges.(trap-and-emulate)
+- Running GuestOS at a lower hardware priority level than the VMM
+
+![VirtualizationStrategy](images/VirtualizationStrategy.png)
+
+**Primary/shadow structures:**
+
+- VMM maintains “shadow” copies of critical structures whose “primary” versions are manipulated by the Guest OS, e.g. memory page tables
+- Primary copies needed to insure correct versions are visible to Guest OS
+
+**Memory traces:**
+
+- Controlling access to memory so that the shadow and primary structure remain coherent
+- Common strategy: write-protect primary copies so that update operations cause page faults which can be caught, interpreted, and addressed
+
+### Aspects of VMMs
+
+#### Full virtualisation vs Para-virtualisation
+
+##### Full virtualisation
+
+- allow an unmodified guest OS to run in isolation by simulating full hardware (e.g. VMWare)
+- Guest OS has no idea it is not on physical machine
+
+**Advantages:**
+
+- Guest is unaware it is executing within a VM
+- Guest OS need not be modified
+- No hardware or OS assistance required
+- Can run legacy OS
+
+**Disadvantages:**
+
+- can be less efficient, may trap a lot of thing
+
+![Full virtualisation](images/Fullvirtualisation.png)
+
+- VMM run Ring 0
+- Apps run in Ring 3
+- Virtualisation (Guest OS) uses extra rings; VMM traps privileged instructions and translates to hardware specific instructions
+
+##### Para-virtualisation
+
+- VMM/Hypervisor exposes special interface to guest OS for better performance. Requires a modified/hypervisoraware Guest OS (e.g. Xen)
+- Paravirtualization is virtualization in which the guest operating system (the one being virtualized) is aware that it is a guest and accordingly has drivers that, instead of issuing hardware commands, simply issue commands directly to the host operating system.
+
+**Advantages:**
+
+- Lower virtualisation overheads, so better performance, e.g. Xen
+
+**Disadvantages:**
+
+- Need to modify guest OS
+- Less portable
+- Less compatibility
+
+![Para-Virtualization](images/Para-Virtualization.png)
+
+#### Hardware-assisted Virtualization vs Binary Translation
+
+##### Hardware-assisted virtualisation
+
+Hardware-assisted virtualization changes the access to the operating system itself.  x86 operating systems are designed to have direct access to system resources to run. With software virtualization the VMM emulates the required hardware to the operating system. With hardware-assisted virtualization the operating system has direct access to resources without any emulation or OS modification.(e.g KVM)
+
+- New processors typically have this
+- Requires that all sensitive instructions trappable
+
+**Advantages:**
+
+- Good performance
+- Easier to implement
+- Advanced implementation supports hardware assisted DMA, memory virtualisation, …
+
+**Disadvantages:**
+
+- Needs hardware support
+
+![Hardware-assistedVirtualization](images/Hardware-assistedVirtualization.png)
+
+- New Ring -1 supported Page tables, virtual memory management, DMA for high speed reads etc
+
+##### Binary Translation
+
+Trap and execute occurs by scanning guest instruction stream and replacing sensitive instructions with emulated code (e.g. VMWare)
+
+```
+It translates kernel code (privileged instructions) to replace nonvirtualizable instructions with new 
+sequences of instructions that have the intended effect on the virtual 
+hardware.
+
+So the privileged instructions are translated into other instructions, 
+which access the virtual BIOS, memory management, and devices provided 
+by the Virtual Machine Monitor, instead of executing directly on the 
+real hardware.
+```
+
+```
+*** Privileged and sensitive instructions and trap
+A machine has at least two modes (a) user mode and (b) system mode. 
+Typically, applications run in user mode and the operating system runs 
+in system mode. In system mode, the code/program can see and manipulate 
+the machine without restrictions. In user mode, the code/program has 
+some limitations in what it can do, e.g. it can't access all of the 
+machine's memory without acquiring permission first.
+
+Instructions are either (a) privileged or (b) not privileged. Privileged 
+instructions trap when executed in user mode. Trapping means that the 
+machine is forced into system mode whereby it executes some code of the 
+operating system to deal with the situation. In a sense, they alert the 
+operating system when executed.
+
+Instructions can also be either (a) sensitive or (b) not sensitive. 
+Sensitive instructions modify part of the machine's resources, or, 
+exhibit different behaviour depending if they are executed in user mode 
+or system mode.
+```
+
+**Advantage:**
+
+- Guest OS need not be modified
+- No hardware or OS assistance required
+- Can run legacy OS
+
+**Disadvantages:**
+
+- Overheads
+- Complicated
+- Need to replace instructions “on-the-fly”
+- Library support to help this, e.g. vCUDA
+
+![BinaryTranslation](images/BinaryTranslation.png)
+
+#### Bare Metal Hypervisor vs Hosted Virtualization
+
+##### Bare Metal Hypervisor
+
+VMM runs directly on actual hardware
+
+- Boots up and runs on actual physical machine
+- VMM has to support device drivers, all hardware management
+
+##### Hosted Virtualisation
+
+VMM runs on top of another operating system
+
+#### Operating System Level Virtualization
+
+A type of server virtualization technology which works at the OS layer. The physical server and single instance of the operating system is virtualized into multiple isolated partitions, where each partition replicates a real server. The OS kernel will run a single operating system and provide that operating system functionality to each of the partitions.
+
+```
+tailoring a standard operating system so that it can run different 
+applications handled by multiple users on a single computer at a time. 
+The operating systems do not interfere with each other even though they 
+are on the same computer.
+
+ the operating system is altered so that it operates like several 
+ different, individual systems. The virtualized environment accepts 
+ commands from different users running different applications on the 
+ same machine. The users and their requests are handled separately by 
+ the virtualized operating system.
+```
+
+- Lightweight VMs
+- Instead of whole-system virtualisation, the OS creates mini-containers
+- Example, LXC, Docker, OpenVZ, FreeBSD Jails etc
+
+**Advantages:**
+
+- Lightweight
+- Many more VMs on same hardware
+- Can be used to package applications and all OS dependencies into container
+
+**Disadvantages:**
+
+- Can only run apps designed for the same OS
+- Cannot host a different guest OS
+- Can only use native file systems
+- Uses same resources as other containers
+
+#### Memory Virtualisation
+
+Conventionally page tables store the logical page number -> physical page number mappings
+
+![MemoryVirtualisation1](images/MemoryVirtualisation1.png)
+
+**in a VM**
+
+![MemoryVirtualisation2](images/MemoryVirtualisation2.png)
+
+#### Shadow Page Tables
+
+![ShadowPageTables](images/ShadowPageTables.png)
+
+- VMM maintains shadow page tables in lock-step with the page tables
+- Adds additional management overhead
+- Hardware performs guest -> physical and physical -> machine translation
+
+```
+
+Shadow page tables are used and maintained by the VMM to keep track of
+the state in which the guest "thinks" its page tables should be.
+The guest can't be allowed access to the host hardware page tables
+because then it would essentially have control of the machine.
+the VMM keeps the "real" mappings (guest virtual -> host physical)in the
+hardware when the relevant guest is executing, and keeps a
+representation of the page tables that the guest thinks it's using "in
+the shadows,"
+
+```
+
+### OpenStack
+
+OpenStack is a collection of open source technologies delivering a massive scalable cloud operating system. Often used through web-based dashboards, through command-line tools, or programmatically through ReSTful APIs.OpenStack software controls cloud
+
+### Containerization
+
+#### Virtualization vs Containerization
+
+- The many advantages of virtualizaDon, such as applicaDon containment and horizontal scalability, come at a cost: resources. The guest OS and binaries can give rise to duplicaDons between VMs wasDng server processors, memory and disk space and limiDng the number of VMs each server can support.
+- ContainerizaDon allows virtual instances to share a single host OS (and associated drivers, binaries, libraries) to reduce these wasted resources since each container only holds the applicaDon and related binaries. The rest are shared among the containers.
+
+![VirtualizationvsContainerization](images/VirtualizationvsContainerization.png)
+![VirtualizationvsContainerization2](images/VirtualizationvsContainerization2.png)
+
+When deploying applicaDons on the cloud, the base computaDon unit is a Virtual Machine. Usually Docker containers are deployed on top of VMs.
+
+![VirtualizationandContainerization](images/VirtualizationandContainerization.png)
+
+##### Are Containers better than VMs?
+
+Depends on:
+
+- The size of the task on hand
+- The life span of the applicaDon
+- Security concerns
+- Host operaDon system, e.g. running Docker on Windows servers
+
+##### What is a Container?
+
+- Similar concept of resource isolaDon and allocaDon as a virtual machine.
+- Without bundling the enDre hardware environment and full OS.
+- Container technologies: Rocket (rkt), LxD, Docker ...
+- Docker is currently the leading so[ware container platform
+
+##### What are Container Orchestration Tools?
+
+Container orchestraDon technologies provides a framework for integraDng and managing containers at scale
+
+- Simplify container management processes
+- Help to manage availability and scaling of containers
+
+### Docker
+
+It uses resource isolation features of the Linux kernel to allow independent “containers” to run within a single Linux instance.
+
+#### Docker Nomenclature
+
+- **Container:** a process that behaves like an independent machine, with its own operaDng system, ﬁle system, network interfaces and applications.
+- **Image:** a blueprint for a container, a container is an instance of an image.
+- **Dockerﬁle:** the recipe to create an image. Every instrucDon in the recipe is a layer that is stored independently, so that only changed layers need to be re-run or transferred, the rest will be cached.
+- **Docker registry:** a repository of Docker images. The most important one is the Docker Hub (hips://hub.docker.com)
+- **Docker Compose:** Compose is a tool for deﬁning and running multi-containers Docker applicaDons. With Compose you can create and start all services from a pre-deﬁned YAML conﬁguraDon ﬁle.
+
+#### Manage Data in Docker
+
+By default all ﬁles created inside a container are stored on a writable container layer.
+
+- Data doesn’t persist when a container is no longer running.
+- It is diﬃcult to move the data out of a container.
+- It is also diﬃcult to move the data into a container.
+
+Docker has two opDons for containers to store ﬁles in the host machine, so that the ﬁles are persisted even a[er the container stops.
+
+- Docker volumes (Managed by Docker, /var/lib/docker/volume/)
+- Bind mounts (Managed by user, any where on the ﬁle system)
+
+![DockerManage](images/DockerManage.png)
+
+#### Networking
+
+- Network mode “host”: every container uses the host network stack; which means all containers share the same IP address, hence ports cannot be shared across containers (Linux only, not for Mac or Windows)
+- With the “bridge” opDon, containers can re-use the same port, as they have diﬀerent IP addresses, and expose a port of their own that belongs to the hosts, allowing the containers to be somewhat visible from the outside.
