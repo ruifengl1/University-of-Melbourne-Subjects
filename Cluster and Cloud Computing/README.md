@@ -65,10 +65,70 @@
 - If 95% of the program can be parallelized, the theoretical maximum speedup using parallel computing would be 20×, no matter how many processors are used
 - If the non-parallelisable part takes 1 hour, then no matter how many cores you throw at it it won’t complete in <1 hour.
 
+```
+Amdahl’s law states that the speedup achieved through parallelisation of 
+a program is limited by the percentage of its workload that is 
+inherently serial. We can get no more than a maximum speedup equal to
+1 / (s + p / N ) where
+
+s = the length of the serial part of the problem
+p = the length of the parallel part of the problem
+N = number of processors used
+```
+
 ****Overheads:** overhead is any combination of excess or indirect computation time, memory, bandwidth, or other resources that are required to perform a specific task (It's like when you need to go somewhere, you might need a car. But, it would be a lot of overhead to get a car to drive down the street, so you might want to walk. However, the overhead would be worth it if you were going across the country.)
 
 
 **Gustafson-Barsis's Law:** programmers tend to set the size of problems to use the available equipment to solve problems within a practical fixed time. _Faster (more parallel) equipment available, larger problems can be solved in the same time_
+
+```
+Gustafson’s law states that , with increasing data size, the speedup 
+obtained through parallelisation increases, because the parallel work 
+increases(scales) with data size.
+scaled speed-up: S(N) = α + N(1 − α) = N − α(N − 1)
+α Fraction of running time sequential program spends on parallel parts
+N parallel computations/processors
+
+A VS G:
+one sees data size as fixed and the other sees the relation as a 
+function of data size.
+```
+
+**Flynn’s Taxonomy:**
+
+- SISD (Single Instruction, Single Data stream)
+
+![SISD](images/SISD.png)
+
+- Sequential computer which exploits no parallelism in either the instruction or data streams
+- Single control unit (CU/CPU) fetches single Instruction Stream from memory. The CU/CPU then generates appropriate control signals to direct single processing element to operate on single Data Stream, i.e. one operation at a time.
+- Basic idea of von Neumann computer (pretty much obsolete)
+
+### MISD (Multiple Instruction, Single Data stream)
+
+![SISD](images/MISD.png)
+
+- Parallel computing architecture where many functional units (PU/CPU) perform different operations on the same data
+- Examples include fault tolerant computer architectures, e.g. running multiple error checking processes on same data stream
+
+### SIMD (Single Instruction, Multiple Data stream)
+
+![SIMD](images/SIMD.png)
+
+- multiple processing elements that perform the same operation on multiple data points simultaneously
+- focus in on data level parallelism, i.e. many parallel computations, but only a single process (instruction) at a given moment.
+- many modern computers use SIMD instructions, e.g. to improve performance of multimedia use such as for image processing
+- Harvard architecture? Digital Signal Processor?
+
+### MIMD Multiple Instruction, Multiple Data stream
+
+![MIMD](images/MIMD.png)
+
+- number of processors that function asynchronously and independently
+- at any time, different processors may be executing different instructions on different pieces of data
+- machines can be shared memory or distributed memory categories
+    - depends on how MIMD processors access memory
+- most systems these days operate on MIMD e.g. HPC (almost all high performance computing systems are cluster of computer connected using a high bandwidth and especially a low latency interconnect)
 
 **Computer Architecture:**
 
@@ -81,6 +141,7 @@
 
 
 ### Approaches for Parallelism
+
 **Explicit vs Implicit Parallelisation:**
 
 - _Implicit Parallelism_: Supported by parallel languages and parallelizing compilers that take care of identifying parallelism, the scheduling of calculations and the placement of data
@@ -139,7 +200,7 @@ Data Parallelism
 2. Latency is zero
 3. Bandwidth is infinite
 4. The network is secure
-5. Topoogy doesn't change
+5. Topology doesn't change
 6. There is one administrator
 7. Transport cost is zero
 8. The network is homogeneous
@@ -199,7 +260,7 @@ Data Parallelism
 - This improves performance and provides redundancy in case of failure system
 - For example, there are a collection of smaller computers strapped together with a high-speed local network, although a low-speed network system could certainly be used.
 
-****The clustered HPC is the most efficient, economical, and scalable method, and for that reason it dominates supercomputing today.**
+**Parallel computing** refers to the submission of jobs or processes over multiple processors and by splitting up the data or tasks between them
 
 **Cluster and Parellel:** With a cluster architecture, applications can be more easily parallelised across them. Parallel computing refers to the submission of jobs or processes over multiple processors and by splitting up the data or tasks between them._The core issue is that high performance compute clusters is just speed and power but also usage, productivity, correctness, and reproducibility_
 
@@ -402,9 +463,9 @@ three.example.com
 
 **The four “Vs” :**
 
-- Volume, (Giga, Tera, Peta)
-- Velocity, how fast new data being brought in to the system and analysis performed
-- Variety: the variability and complexity of data schema(number of types of data). The more complex the data schema(s) you have, the higher the probability of them changing along the way, adding more complexity.
+- Volume, refers to the amount of data
+- Velocity,  refers to the speed of data processing
+- Variety,refers to the number of types of data
 - Veracity: the level of trust in the data accuracy (provenance); the more diverse sources you have, the more unstructured they are, the less veracity you have.
 
 **Why DBMSs(database management system) for Distributed Environments:**
@@ -436,29 +497,58 @@ three.example.com
 ****MongoDB replica set and shard:**
 
 - **replica set**
-    - MongoDB replication stores multiple copies of data across different databases in multiple locations, and thus protects data when the database suffers any loss, increasesing data availability by creating data redundancy.
-    - A replica set consists of a group of mongod (read as Mongo D) instances that host the same data set.(That is Node A.* in the picture above)
-    - In a replica set, the primary mongod receives all write operations and the secondary mongod replicates the operations from the primary and thus both have the same data set. The primary node receives write operations from clients.
-    - A replica set can have only one primary and therefore only one member of the replica set can receive write operations
-    - When the primary becomes unavailable, the replica set nominates a secondary as the primary
-    - Secondary members in a replica set asynchronously apply operations from the primary
+    - MongoDB replication stores multiple copies of data across 
+    different databases in multiple locations, and thus protects data 
+    when the database suffers any loss, increasesing data availability 
+    by creating data redundancy.
+    - A replica set consists of a group of mongod (read as Mongo D) 
+    instances that host the same data set.(That is Node A.* in the 
+    picture above)
+    - In a replica set, the primary mongod receives all write operations 
+    and the secondary mongod replicates the operations from the primary 
+    and thus both have the same data set. The primary node receives 
+    write operations from clients.
+    - A replica set can have only one primary and therefore only one 
+    member of the replica set can receive write operations
+    - When the primary becomes unavailable, the replica set nominates a 
+    secondary as the primary
+    - Secondary members in a replica set asynchronously apply operations 
+    from the primary
 - **shard** 
-    - Sharding in MongoDB is the process of distributing data across multiple servers for storage. With an increase in the data size, a single machine may not be able to store data or provide an acceptable read and write throughput. MongoDB sharding supports horizontal scaling and thus is capable of distributing data across multiple machines
-    - Each shard serves as an independent database, and together, shards make a single logical database. MongoDB sharding reduces the number of operations each shard handles and as a cluster grows, each shard handles fewer operations and stores lesser data. As a result, a cluster can increase its capacity and input horizontally.
-    - A shard is a replica set or a single mongod instance that holds the data subset used in a sharded cluster. Shards hold the entire data set for a cluster. Each shard is a replica set that provides redundancy and high availability for the data it holds
+    - Sharding in MongoDB is the process of distributing data across 
+    multiple servers for storage. With an increase in the data size, a 
+    single machine may not be able to store data or provide an 
+    acceptable read and write throughput. MongoDB sharding supports 
+    horizontal scaling and thus is capable of distributing data across 
+    multiple machines
+    - Each shard serves as an independent database, and together, shards 
+    make a single logical database. MongoDB sharding reduces the number 
+    of operations each shard handles and as a cluster grows, each shard 
+    handles fewer operations and stores lesser data. As a result, a 
+    cluster can increase its capacity and input horizontally.
+    - A shard is a replica set or a single mongod instance that holds 
+    the data subset used in a sharded cluster. Shards hold the entire 
+    data set for a cluster. Each shard is a replica set that provides 
+    redundancy and high availability for the data it holds
 - **features of arbiters**
     - They DO NOT maintain a dataset
     -  Their primary function is to select the primary node
     - They do not store data and hence need no additional hardware
 ```
 
-- Sharding is done at the replica set level, hence it involves more than one cluster (a shard is on top of a replica set)
-- Only the primary node in a replica set answers write requests, but read requests can -depending on the specifics of the configuration- be answered by every node (including secondary nodes) in the set
+- Sharding is done at the replica set level, hence it involves more than 
+one cluster (a shard is on top of a replica set)
+- Only the primary node in a replica set answers write requests, but 
+read requests can -depending on the specifics of the configuration- be 
+answered by every node (including secondary nodes) in the set
 - Updates flow only from the primary to the secondary
-- If a primary node fails, or discovers it is connected to a minority of nodes, a secondary of the same replica set is elected as the primary
-- Arbiters (MongoDB instances without data) can assist in breaking a tie in elections.
+- If a primary node fails, or discovers it is connected to a minority of 
+nodes, a secondary of the same replica set is elected as the primary
+- Arbiters (MongoDB instances without data) can assist in breaking a tie 
+in elections.
 - Data are balanced across replica sets
-- Since a quorum has to be reached, it is better to have an odd number of voting members (the arbiter in this diagram is only illustrative)
+- Since a quorum has to be reached, it is better to have an odd number 
+of voting members (the arbiter in this diagram is only illustrative)
 
 #### CouchDB Cluster Architecture
 
@@ -492,11 +582,22 @@ three.example.com
 ##### Consistency and Availability: Two phase commit
 
 ```
-**As its name implies, the coordinator arranges activities and synchronization between distributed servers. Saving data changes is known as a commit and undoing changes is known as a rollback. The two-phase commit is implemented as follows:
+**As its name implies, the coordinator arranges activities and 
+synchronization between distributed servers. Saving data changes is 
+known as a commit and undoing changes is known as a rollback. The 
+two-phase commit is implemented as follows:
 
-- **Phase 1 - Each server that needs to commit data writes its data records to the log. If a server is unsuccessful, it responds with a failure message. If successful, the server replies with an OK message.
+- **Phase 1 - Each server that needs to commit data writes its data 
+records to the log. If a server is unsuccessful, it responds with a 
+failure message. If successful, the server replies with an OK message.
 
-- **Phase 2 - This phase begins after all participants respond OK. Then, the coordinator sends a signal to each server with commit instructions. After committing, each writes the commit as part of its log record for reference and sends the coordinator a message that its commit has been successfully implemented. If a server fails, the coordinator sends instructions to all servers to roll back the transaction. After the servers roll back, each sends feedback that this has been completed.
+- **Phase 2 - This phase begins after all participants respond OK. Then, 
+the coordinator sends a signal to each server with commit instructions. 
+After committing, each writes the commit as part of its log record for 
+reference and sends the coordinator a message that its commit has been 
+successfully implemented. If a server fails, the coordinator sends 
+instructions to all servers to roll back the transaction. After the 
+servers roll back, each sends feedback that this has been completed.
 ```
 
 - it enforces consistency by:
@@ -516,8 +617,11 @@ Therefore, two-phase commit is a good solution when the cluster is co-located, l
 **Basic steps in Paxos:
 
 - Elect a node to be a Leader / Proposer
-- The Leader selects a value and sends it to all nodes (called Acceptors in Paxos) in an accept-request message. Acceptors can reply with reject or accept.
-- Once a majority of the nodes have accepted, consensus is reached and the coordinator broadcasts a commit message to all nodes.
+- The Leader selects a value and sends it to all nodes (called Acceptors 
+in Paxos) in an accept-request message. Acceptors can reply with reject 
+or accept.
+- Once a majority of the nodes have accepted, consensus is reached and 
+the coordinator broadcasts a commit message to all nodes.
 ```
 
 - driven by consensus, and is both partitiontolerant and consistent
@@ -530,8 +634,29 @@ Therefore, two-phase commit is a good solution when the cluster is co-located, l
 ##### Availability and Partition-tolerance: Multi-Version Concurrency Control (MVCC)
 
 ```
-Multiversion Concurrency Control (MVCC) enables snapshot isolation. Snapshot isolation means that whenever a transaction would take a read lock on a page, it makes a copy of the page instead, and then performs its operations on that copied page. This frees other writers from blocking due to a read locks held by other transactions.
+Multiversion Concurrency Control (MVCC) enables snapshot isolation. 
+Snapshot isolation means that whenever a transaction would take a read 
+lock on a page, it makes a copy of the page instead, and then performs 
+its operations on that copied page. This frees other writers from 
+blocking due to a read locks held by other transactions.
 
+** snapshot: VMware snapshots copy a virtual machine disk file and can 
+restore a virtual machine (VM) to a specific point in time if a failure 
+occurs.
+                 ^                ^                  ^
+                 ^                ^                  ^
+                 ^                ^                  ^
+## An image of a virtual machine is (in simple words) a copy of the VM,
+which may contain an OS, data files, and applications.
+An image is a virtual hard disk (.vhd) file that is used as a  template
+for creating a virtual machine. An image is a template because  it
+doesn’t have the specific settings that a configured virtual machine 
+has, such as the computer name and user account settings. If you want to
+create multiple virtual machines that are set up the same way, you can
+capture an image of a configured virtual machine and use that image as a
+template
+
+virtual images(snapshots)
 ```
 
 - MVCC is a method to ensure availability (every node in a cluster always accepts requests), and some sort of recovery from a partition by reconciling the single databases with revisions (data are not replaced, they are just given a new revision number)
@@ -655,7 +780,15 @@ change their behavior. To address these shortcomings, CouchDB offers List and Sh
 - standard graphic way, UML deployment diagram, which is diagrams used to describe the physical components (hardware), their distribution, and association.
 
 ```
-**Service-Oriented Architecture: A service-oriented architecture is a style of software design where services are provided to the other components by application components, through a communication protocol over a network. The basic principles of service-oriented architecture are independent of vendors, products and technologies.[1] A service is a discrete unit of functionality(independent functionality) that can be accessed remotely and acted upon and updated independently, such as retrieving a credit card statement online.
+**Service-Oriented Architecture: A service-oriented architecture is a 
+style of software design where services are provided to the other 
+components by application components, through a communication protocol 
+over a network. The basic principles of service-oriented architecture 
+are independent of vendors, products and technologies. 
+
+A service is a discrete unit of functionality (independent functionality)
+that can be accessed remotely and acted upon and updated independently, 
+such as retrieving a credit card statement online.
 
 A service has four properties from SOA:
 - It logically represents a business activity with a specified outcome.
@@ -663,7 +796,13 @@ A service has four properties from SOA:
 - It is a black box for its consumers.
 - It may consist of other underlying services.
 
-Different services can be used in conjunction to provide the functionality of a large software application. Service-oriented architecture is less about how to modularize an application, and more about how to compose an application by integrating distributed, separately-maintained and deployed software components. It is enabled by technologies and standards that make it easier for components to communicate and cooperate over a network, especially an IP network.
+Different services can be used in conjunction to provide the 
+functionality of a large software application. Service-oriented 
+architecture is less about how to modularize an application, and more 
+about how to compose an application by integrating distributed, 
+separately-maintained and deployed software components. It is enabled by 
+technologies and standards that make it easier for components to 
+communicate and cooperate over a network, especially an IP network.
 
 ```
 ![SOA_IBM](images/SOA_IBM.gif)
@@ -671,12 +810,12 @@ Different services can be used in conjunction to provide the functionality of a 
 **Why SOA?**
 
 - When an architecture is completely contained within the same machine, components communicate through function calls or object instantiations. However, when components are distributed, function calls and object instantiations cannot always be used directly.
-- Services are often used for this._Every system in a SOA should be considered as autonomous, but network-reachable and inter-operable through services._
+- Services are often used for this. Every system in a SOA should be considered as autonomous, but network-reachable and inter-operable through services._
 
 **SOA Core Ideas:**
 
 - _A set of services_ that a business wants to provide to their customers, partners, or other areas of an organization
-- An architectural pattern that requires a service provider, mediation, and service requestor with a service description
+- _An architectural pattern_ that requires a service provider, mediation, and service requestor with a service description
 - _A set of architectural principles, patterns and criteria_ that address characteristics such as modularity, encapsulation, loose coupling, separation of concerns, reuse and composability
 - _A programming model_ complete with standards, tools and technologies that supports web services, ReST services or other kinds of services
 - _A middleware solution_ optimized for service assembly, orchestration, monitoring, and management
@@ -713,7 +852,7 @@ between systems and REST is a type of web service in which the user
 simply accesses a URL, and the response is a straight XML document
 
 SOAP provides the envelope for sending Web Services messages over the 
-Internet/Internet. SOAP use XML (Extensible Markup Language) over HTTP 
+Internet. SOAP use XML (Extensible Markup Language) over HTTP 
 as the intermediate language for exchanging data between applications.
 (https://www.guru99.com/soap-simple-object-access-protocol.html)
 
@@ -1026,7 +1165,7 @@ ensures that processing can continue while data is recovered.
 
 3.The HDFS architecture consists of clusters, each of which is accessed
 through a single NameNode software tool installed on a separate machine
-to monitor and manage the that cluster's file system and user access
+to monitor and manage the cluster's file system and user access
 mechanism. The other machines install one instance of DataNode to manage
 cluster storage.
 
@@ -1274,7 +1413,15 @@ scala> val data = sc.textFile("data.txt")
 ## Lecture 9
 
 ```
-A Virtual Machine Monitor/Hypervisor (VMM) is a software program that enables the creation, management and governance of virtual machines (VM) and manages the operation of a virtualized environment on top of a physical host machine.VMM manages the backend operation of these VMs by allocating the necessary computing, memory, storage and other input/output (I/O) resources.VMM also provides a centralized interface for managing the entire operation, status and availability of VMs that are installed over a single host or spread across different and interconnected hosts
+A Virtual Machine Monitor/Hypervisor (VMM) is a software program that 
+enables the creation, management and governance of virtual machines (VM) 
+and manages the operation of a virtualized environment on top of a 
+physical host machine.VMM manages the backend operation of these VMs by 
+allocating the necessary computing, memory, storage and other 
+input/output (I/O) resources.VMM also provides a centralized interface 
+for managing the entire operation, status and availability of VMs that 
+are installed over a single host or spread across different and 
+interconnected hosts
 ```
 
 - Virtual Machine Monitor/Hypervisor
@@ -1434,6 +1581,8 @@ functions
 #### Full virtualisation vs Para-virtualisation
 
 ##### Full virtualisation
+
+ Full virtualization requires that every salient feature of the hardware be reflected into one of several virtual machines – including the full instruction set, input/output operations, interrupts, memory access, and whatever other elements are used by the software that runs on the bare machine, and that is intended to run in a virtual machine. In such an environment, any software capable of execution on the raw hardware can be run in the virtual machine and, in particular, any operating systems.
 
 - allow an unmodified guest OS to run in isolation by simulating full hardware (e.g. VMWare)
 - Guest OS has no idea it is not on physical machine
@@ -1696,3 +1845,27 @@ Docker has two opDons for containers to store ﬁles in the host machine, so tha
 
 - Network mode “host”: every container uses the host network stack; which means all containers share the same IP address, hence ports cannot be shared across containers (Linux only, not for Mac or Windows)
 - With the “bridge” opDon, containers can re-use the same port, as they have diﬀerent IP addresses, and expose a port of their own that belongs to the hosts, allowing the containers to be somewhat visible from the outside.
+
+Lecture 12
+
+### Security and Clouds
+
+#### Technical Challenges
+
+- Authentication
+- Authorization
+- Audit / Accounting
+- Conﬁdentiality
+- Privacy
+- Fabric management
+- Trust
+
+#### Non Technical Challenges
+
+- Single sign-on
+- Auditing
+- Deletion
+- Liability
+- Licensing
+- Workflows
+- The Ever Changing Technical/Legal Landscape
