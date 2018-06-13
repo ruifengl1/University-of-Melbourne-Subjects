@@ -373,7 +373,13 @@ Interface), along with implementation as OpenMPI. It leads to connecting several
 
 ****OpenStack** is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a datacenter, all managed through a dashboard that gives administrators control while empowering their users to provision resources through a web interface. It makes horizontal scaling easy, which means that tasks that benefit from running concurrently can easily serve more or fewer users on the fly by just spinning up more instances.
 
-**Automation:** ??
+**Automation:**
+
+- Provides a record of what you did
+- Codiﬁes knowledge about the system
+- Makes process repeatable
+- Makes it programmable – “Infrastructure as Code”
+
 
 **Classification of Scripting tools:**
 
@@ -514,22 +520,21 @@ three.example.com
     secondary as the primary
     - Secondary members in a replica set asynchronously apply operations 
     from the primary
-- **shard** 
-    - Sharding in MongoDB is the process of distributing data across 
-    multiple servers for storage. With an increase in the data size, a 
-    single machine may not be able to store data or provide an 
-    acceptable read and write throughput. MongoDB sharding supports 
-    horizontal scaling and thus is capable of distributing data across 
-    multiple machines
-    - Each shard serves as an independent database, and together, shards 
-    make a single logical database. MongoDB sharding reduces the number 
-    of operations each shard handles and as a cluster grows, each shard 
-    handles fewer operations and stores lesser data. As a result, a 
-    cluster can increase its capacity and input horizontally.
-    - A shard is a replica set or a single mongod instance that holds 
-    the data subset used in a sharded cluster. Shards hold the entire 
-    data set for a cluster. Each shard is a replica set that provides 
-    redundancy and high availability for the data it holds
+- **shard**
+    - Sharding is taking a single logical data model and partitioning it 
+    into disjoint subsets, ideally so that relationships between records 
+    in the data model do not span a single "shard". In practice, a shard 
+    is often an independent database instance. A simple example would be 
+    sharding a database of people by last name such that names that 
+    start with "a" are on shard 1, "b" are on shard 2, etc. Distributed 
+    hash tables are a special case of sharding; all records can be 
+    sharded but there will be no common relationship between records on 
+    a particular shard.
+    - The importance of sharding is that it can be a simple way to build 
+    a scalable distributed database because each shard can be on a 
+    different machine.
+    - Conventional sharding has significant limits. If a data model 
+    cannot be partitioned into disjoint sets then it often scales poorly
 - **features of arbiters**
     - They DO NOT maintain a dataset
     -  Their primary function is to select the primary node
@@ -727,7 +732,7 @@ Relational DBMSs(fine-grained data)---->>ensuring consistency and availability u
 - A CouchDB instance can have many databases; each database can have its own set of functions, and can be stored in different shards
 - In every CouchDB instance there are system databases. These are prefixed by underscore, such as _users
 
-##### Querying a CouchDB Databas
+##### Querying a CouchDB Database
 
 Two mechanisms to select a set of _documents (json structure, including multiple types of data)_ that exhibit certain features
 
@@ -1649,9 +1654,9 @@ Hardware-assisted virtualization changes the access to the operating system itse
 Trap and execute occurs by scanning guest instruction stream and replacing sensitive instructions with emulated code (e.g. VMWare)
 
 ```
-It translates kernel code (privileged instructions) to replace nonvirtualizable instructions with new 
-sequences of instructions that have the intended effect on the virtual 
-hardware.
+It translates kernel code (privileged instructions) to replace 
+nonvirtualizable instructions with new sequences of instructions that 
+have the intended effect on the virtual hardware.
 
 So the privileged instructions are translated into other instructions, 
 which access the virtual BIOS, memory management, and devices provided 
@@ -1798,18 +1803,18 @@ Depends on:
 - The size of the task on hand
 - The life span of the applicaDon
 - Security concerns
-- Host operaDon system, e.g. running Docker on Windows servers
+- Host operation system, e.g. running Docker on Windows servers
 
 ##### What is a Container?
 
-- Similar concept of resource isolaDon and allocaDon as a virtual machine.
-- Without bundling the enDre hardware environment and full OS.
+- Similar concept of resource isolation and allocation as a virtual machine.
+- Without bundling the entire hardware environment and full OS.
 - Container technologies: Rocket (rkt), LxD, Docker ...
-- Docker is currently the leading so[ware container platform
+- Docker is currently the leading software container platform
 
 ##### What are Container Orchestration Tools?
 
-Container orchestraDon technologies provides a framework for integraDng and managing containers at scale
+Container orchestration technologies provides a framework for integrating and managing containers at scale
 
 - Simplify container management processes
 - Help to manage availability and scaling of containers
@@ -1834,7 +1839,7 @@ By default all ﬁles created inside a container are stored on a writable contai
 - It is diﬃcult to move the data out of a container.
 - It is also diﬃcult to move the data into a container.
 
-Docker has two opDons for containers to store ﬁles in the host machine, so that the ﬁles are persisted even a[er the container stops.
+Docker has two options for containers to store ﬁles in the host machine, so that the ﬁles are persisted even after the container stops.
 
 - Docker volumes (Managed by Docker, /var/lib/docker/volume/)
 - Bind mounts (Managed by user, any where on the ﬁle system)
@@ -1844,7 +1849,7 @@ Docker has two opDons for containers to store ﬁles in the host machine, so tha
 #### Networking
 
 - Network mode “host”: every container uses the host network stack; which means all containers share the same IP address, hence ports cannot be shared across containers (Linux only, not for Mac or Windows)
-- With the “bridge” opDon, containers can re-use the same port, as they have diﬀerent IP addresses, and expose a port of their own that belongs to the hosts, allowing the containers to be somewhat visible from the outside.
+- With the “bridge” option, containers can re-use the same port, as they have diﬀerent IP addresses, and expose a port of their own that belongs to the hosts, allowing the containers to be somewhat visible from the outside.
 
 Lecture 12
 
