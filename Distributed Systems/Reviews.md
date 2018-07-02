@@ -232,6 +232,7 @@ From low level to high level:
     - time uncoupling -- senders and receivers **do not need to exist at the same time**. The message senders sent is stored and picked up at a later moment.
     - E.g.:
     <img src="images/TimeandSpace_uncoupling.png" alt="550" width="550">
+    
     ```
     Direct communication, sender and receivers exist in the same time and 
     know of each other.
