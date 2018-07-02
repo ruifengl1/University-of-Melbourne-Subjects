@@ -8,6 +8,7 @@
 ## Contents
 
 - [Introduction](#Introduction)
+- [Models](#Models)
 
 ---
 
@@ -193,4 +194,120 @@ are:
 
 - Communication networks that enable distributed systems are the Internet, intranets and wireless networks
 - Resource sharing is the main motivation for distributed systems
-- There are many challenges associated with these systems - Heterogeneity, Openness, Security, Scalability, Failure handling, Concurrency, Transparency
+- There are many challenges associated with these systems - Heterogeneity, Openness, Security, Scalability, Failure handling, Concurrency,Transparency
+
+## Models
+
+A pyhsical model considers: - underlying hardware elements
+
+An architectural model considers:
+
+- Architectural elements - components of the system that interact with one another
+- Architectural patterns - the way components are mapped to the underlying system
+- Associated middleware solutions - existing solutions to common problems
+
+Fundamental models define:
+
+- The non-functional aspects of the distributed system such as
+    - reliability
+    - security
+    - performance
+
+### Interfaces
+
+Distributed processes can not directly access each others internal variables or procedures. Passing parameters needs to be reconsidered, in particular, call by reference is not supported as address spaces are not the same between distributed processes. This leads to the notion of an interface. The set of functions that can be invoked by external processes is specified by one or more interface definitions.
+
+- Programmers are only concerned with the abstraction offered by the interface, they are not aware of the implementation details.
+- Programmers also need not know the programming language or underlying platform used to implement the service.
+- So long as the interface does not change (or that changes are backwards compatible), the service implementation can change transparently.
+
+### Communication paradigms
+
+From low level to high level:
+
+- Interprocess communication are communication between processes in a distributed system, e.g. shared memory, sockets, multicast communication (relatively low-level)
+- Remote invocation -- based on a two-way exchange between communicating entities in a distributed system and resulting in the calling of a remote operation, procedure or method, e.g. request-reply protocols, remote procedure calls, remote method invocation
+- Indirect communication:
+    - space uncoupling -- senders **do not need to know who** they are sending to
+    - time uncoupling -- senders and receivers **do not need to exist at the same time**. The message senders sent is stored and picked up at a later moment.
+    - E.g.:
+    <img src="images/TimeandSpace_uncoupling.png" alt="550" width="550">
+    ```
+    Direct communication, sender and receivers exist in the same time and 
+    know of each other.
+    ```
+
+### Roles and responsibilities
+
+- Client, a process that initiates connections to some other process
+- Server, a process that can receive connections from some other process
+- Peer, can be seen as taking both the role of client and server, connecting to and receiving connections from other peers
+
+### Placement
+
+- mapping services to multiple servers
+    - a single service may not make use of a single process and multiple processes may be distributed across multiple machines
+- caching
+    - storing data at places that are typically closer to the client or whereby subsequent accesses to the same data will take less time
+- mobile code
+    - transferring the code to the location that is most efficient, e.g. running a complex query on the same machine that stores the data, rather than pulling all data to the machine that initiated the query
+- mobile agents
+    - code and data together, e.g. used to install and maintain software on a users computer, the agent continues to check for updates in the background
+
+### Architectural Patterns
+
+The two widely used distributed architectures are:
+
+- Client-server: Clients invoke services in servers and results are returned. Servers in turn can become clients to other services.
+
+<img src="images/Client-server.png" alt="550" width="550">
+
+- Peer-to-peer: Each process in the systems plays a similar role interacting cooperatively as peers (playing the roles of client and server simultaneously).
+
+<img src="images/Peer-to-Peer.png" alt="550" width="550">
+
+### Distributed System Architecture Variations
+
+- **A service provided by multiple servers**
+
+Objects may be partitioned (e.g web servers) or replicated across servers (e.g. Sun Network Information Service (NIS)).
+
+<img src="images/multi-servers.png" alt="550" width="550">
+
+- **Proxy servers and caches**
+    - Cache is a store of recently used objects that is closer to client
+    - New objects are added to the cache replacing existing objects
+    - When an object is requested, the caching service is checked to see if an up-to-date copy is available (fetched in not available)
+
+    <img src="images/proxy-server.png" alt="550" width="550">
+
+- **Mobile Code and Agents**
+    - Mobile Code is down loaded to the client and is executed on the client (e.g. applet).
+    - Mobile agents are running programs that includes both code and data that travels from one computer to another.
+
+    <img src="images/mobile_code andagent.png" alt="550" width="550">
+
+- **Network Computers and Thin clients**
+    - Network Computers: download their operating system and application software from a remote file system. Applications are run locally.
+    - Thin Clients: application software is not downloaded but runs on the computer server - e.g.UNIX. It relies on a network connection to a central server for full computing and don't do much processing on the hardware itself.
+
+    <img src="images/networkcomputer_thinclients.png" alt="550" width="550">
+
+```
+Thin Clients:the idea is to limit the capabilities of thin clients to only
+essential applications, and remain "thin" in terms of the client
+applications they include.
+```
+
+### Layering
+
+A software architecture abstracts software into layers or modules in a single computer. Each layer of software provides a service to the next layer. The layers can are referred to as service layers.
+
+Abstract software layers:
+<img src="images/Abstract_software_layers.png" alt="550" width="550">
+
+
+Two important layers for a distributed system are:
+
+- Platform
+- Middleware
