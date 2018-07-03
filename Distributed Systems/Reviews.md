@@ -9,6 +9,8 @@
 
 - [Introduction](#Introduction)
 - [Models](#Models)
+- [Interprocess Communication](#Interprocess-Communication)
+
 
 ---
 
@@ -232,9 +234,9 @@ From low level to high level:
     - time uncoupling -- senders and receivers **do not need to exist at the same time**. The message senders sent is stored and picked up at a later moment.
     - E.g.:
     <img src="images/TimeandSpace_uncoupling.png" alt="550" width="550">
-    
+
     ```
-    Direct communication, sender and receivers exist in the same time and 
+    Direct communication, sender and receivers exist in the same time and
     know of each other.
     ```
 
@@ -307,8 +309,155 @@ A software architecture abstracts software into layers or modules in a single co
 Abstract software layers:
 <img src="images/Abstract_software_layers.png" alt="550" width="550">
 
-
 Two important layers for a distributed system are:
 
 - Platform
 - Middleware
+
+### Middleware
+
+It is the software that sits between the client-side request on the front end and the back-end resource being requested.The role of middleware is to enable and ease access to those back-end resources.
+
+- Provides value added services - e.g.
+    - Naming
+    - security
+    - transactions
+    - persistent storage and
+    - event service
+- Adds overhead due to the additional level of abstraction
+- Communication cannot be completely hidden from applications since appropriate error handling is important
+
+### Tiered architecture
+
+A **layer = a part of your code**, if your application is a cake, this is a slice(vertical slices).
+
+A **tier = a physical machine**, a server.
+
+A tier hosts one or more layers.
+
+<img src="images/Tier_architecture.png" alt="550" width="550">
+
+### Fundamental Models
+
+Fundamental models allow distributed systems to be analyzed in terms of fundamental properties **regardless of the architecture**. These models help **understand how the non-functional requirements** are supported.
+
+The aspects of distributed systems that will be captured in the fundamental models are:
+
+#### Interaction Model
+
+Models the interaction between processes of a distributed system - e.g. interaction between clients and servers or peers.
+
+- Distributed algorithms specify:
+    - Steps taken by each process in the distributed system
+    - The transmission of messages between processes
+
+ Two important aspects of interaction modeling are:
+
+##### Performance of communication channels
+
+Three important performance characteristics of communication channels:
+
+- Latency
+- Bandwidth
+- Jitter, a variation in the delay of received packets
+
+<img src="images/Jitter.png" alt="550" width="550">
+
+##### Event timing
+
+Each computer in a distributed system has its own internal clock. The timestamps between two processes can vary due to:
+
+- Initial time setting being different
+- Differences in clock drift rates
+
+#### Variations of Interaction Models
+
+Two simple models of distributed system interaction are:
+
+- Synchronous system model - assumes known bounds on:
+    - the time to execute each step of a process
+    - message transmission delay
+    - local clock drift rate
+- Asynchronous system model - assumes no bound on:
+    - process execution speed
+    - message transmission delays
+    - clock drift rates
+
+#### Failure Model
+
+The failures in processes and channels are presented using the following taxonomy:
+
+##### Omission failures
+
+Omission failures refers to cases where **a process or a communication channel fails to perform what is expected to do**.
+
+- Process omission failures:
+    - Normally caused by a process crash
+    - Repeated failures during invocation is an indication
+    - Timeouts can be used to detect this type of crash
+    - A crash is referred to as a fail-stop if other processes can detect certainly that the process crashed
+
+- Communication omission failures:
+    - Send omission failure: A message not being transported from sending process to its outgoing buffer
+    - Receive omission failure: A message not being transported from the receiving process's incoming message buffer and the receiving process
+    - Channel omission failures: A message not being transported from p's outgoing message buffer to q's incoming message buffer
+
+    <img src="images/communication_failure.png" alt="550" width="550">
+
+##### Arbitrary failures (Byzantine failure)
+
+Refers to **any type of failure that can occur in a system**. Could be due to:
+
+- Intended steps omitted in processing
+- Message contents corrupted
+- Non-existent messages delivered
+- Real messages delivered more than once
+
+<img src="images/Omission_and_arbitrary_failures.png" alt="550" width="550">
+
+##### Timing failures
+
+These failures occur when **time limits set on** process execution time, message delivery time and clock rate drift. They are particularly relevant to synchronous systems and less relevant to asynchronous systems since the later usually places no or less strict bounds on timing.
+
+<img src="images/Time_failure.png" alt="550" width="550">
+
+### Reliability of one-to-one communication
+
+Reliable communication can be defined in terms of two properties:
+
+- **validity**: any message in the outgoing buffer is eventually delivered to the incoming message buffer.
+- **integrity**: the message is identical to the one sent, and no messages are delivered twice.
+
+### Security Model
+
+Security of a distributed systems is achieved by securing processes, communication channels and protecting objects they encapsulate against unauthorized access.
+
+**Protecting Objects**:
+
+<img src="images/security_model.png" alt="550" width="550">
+
+- Access rights specify who is allowed to perform operations on an object
+- Each invocation and result is associated with a principal
+
+**Securing Processes and Interactions:**
+
+Enemy (adversary) is one capable of sending any message to any process or reading/copying any message between a pair of processes.
+
+<img src="images/Securing_Processes_and_Interactions.png" alt="550" width="550">
+
+#### Possible threats from an enemy
+
+- Threats to processes: Servers and clients cannot be sure about the source of the message. Source address can be spoofed.
+- Threats to communication channels: Enemy can copy, alter or inject messages
+- Denial of service attacks: overloading the server or otherwise triggering excessive delays to the service
+- Mobile code: performs operations that corrupt the server or service in an arbitrary way
+
+#### Addressing security threats
+
+- Cryptography and shared secrets: encryption is the process of scrambling messages
+- Authentication: providing identities of users
+- Secure Channel: Encryption and authentication are used to build secure channels as a service layer on top of an existing communication channel. A secure channel is a communication channel connecting a pair of processes on behalf of its principles
+
+<img src="images/Addressing_security_threats.png" alt="550" width="550">
+
+## Interprocess Communication
