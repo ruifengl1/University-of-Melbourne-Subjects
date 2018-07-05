@@ -10,6 +10,7 @@
 - [Introduction](#Introduction)
 - [Models](#Models)
 - [Interprocess Communication](#Interprocess-Communication)
+- [Remote Invocation](#Remote-Invocation)
 
 ---
 
@@ -652,3 +653,263 @@ The distributed system forms its own communication network over the Internet
 - An example of an overlay network can be distributed systems such as client-server applications and peer-to-peer networks. Such applications or networks act as the overlay networks because all nodes in these applications and networks run on top of the internet.
 
     <img src="images/overlay_network.png" alt="350" width="350">
+
+## Remote Invocation
+
+Three widely used models are:
+
+- Remote Procedure Call model - an extension of the conventional procedure call model.
+- Remote Method Invocation model - an extension of the object-oriented programming model.
+
+### The Request-Reply protocol
+
+The request-reply protocol is perhaps the most common exchange protocol for implementation of remote invocation in a distributed system. We discuss the protocol based on three abstract  operations: ```doOperation```, ```getRequest``` and ```sendReply``` .
+
+- doOperation: sends a request message to the remote object and returns the reply. The arguements specify the remote object, the method to be invoked and the arguments of that method
+- getRequest: acquires a client request via the server port
+- sendReply: sends the reply message reply to the client at its internet address and port
+
+#### Typical Message Content
+
+A message in a request-reply protocol typically contains a number of fields as shown below.
+
+<img src="images/Typical_Message_Content.png" alt="550" width="550">
+
+### Design Issues
+
+- Failure model can consider:
+    - Handling timeouts
+    - Discarding duplicate messages
+    - Handling lost reply messages - strategy depends on whether the server operations are idemponent (an operation that can be performed repeatedly)
+    - History - if servers have to send replies without re-execution, a history has to be maintained
+- Three main design decisions related to implementations of the request/reply protocols are:
+    - Strategy to retry request message
+    - Mechanism to filter duplicates
+    - Strategy for results retransmission
+
+### Exchange protocols
+
+- Three different types of protocols are typically used that address the design issues to a varying degree:
+    - the request (R) protocol
+    - the request-reply (RR) protocol
+    - the request-reply-acknowledge reply (RRA) protocol
+
+### Invocation Semantics
+
+Middleware that implements remote invocation generally provides a certain level of semantics:
+
+- **Maybe invocation semantics**: The remote procedure call may be excecuted once or not at all. Unless the caller receives a result, it is unknown as to whether the remote procedure was called.
+- **At-least-once invocation semantics**: Either the remote procedure was executed at least once, and the caller received a response, or the caller received an exception to indicate the remote procedure was not executed at all.
+- **At-most-once**: The remote procedure call was either executed exactly once,in which case the caller received a response, or it was not executed at all and the caller receives an exception.
+
+### Fault Tolerance Measures
+
+<img src="images/Fault_Tolerance_Measures.png" alt="550" width="550">
+
+### Transparency
+
+Although location and access transparency are goals for remote invocation, in some cases complete transparency is not desirable due to:
+
+- remote invocations being more prone to failure due to network and remote machines
+- latency of remote invocations is significantly higher than that of local invocations
+
+Therefore, many implementations provide access transparency but not complete location transparency. This enables the programmer to make optimisation decisions based on location.
+
+### Client-server communication
+
+- Client-server communication normally uses the synchronous request-reply communication paradigm
+- Involves send and receive operations
+- TCP or UDP can be used - TCP involves additional overheads:
+    - redundant acknowledgements
+    - needs two additional messages for establishing connection
+    - flow control is not needed since the number of arguments and results are limited
+
+    ```
+    Flow control ensure that a sender is not overwhelming a receiver by
+    sending packets faster than it can consume.
+    ```
+
+### HTTP: an example of a RR protocol
+
+- HTTP protocol specifies the:
+    - the messages involved in the protocol
+    - the methods, arguments and results
+    - the rules for marshalling messages
+- Allows content negotiation - client specify the data format they can accept
+- Allows authentication - based on credentials and challenges
+- Original version of the protocol did not persist connections resulting in overloading the server and the network
+- HTTP 1.1 uses persistent connections
+- HTTP methods
+    - ```GET``` - Request resources from a URL
+    - ```HEAD``` - Identical to GET but does not return data
+    - ```POST``` - Supplies data to the resources
+    - ```PUT``` - Requests the data to be stored with the given URL
+    - ```DELETE``` - Requests the server to delete the resource indentified with the given URL
+    - ```OPTIONS``` - Server supplies the available options
+    - ```TRACE``` - Server sends back the request message
+- _Requests_ and _replies_ are marshalled into messages as ASCII text strings:
+
+<img src="images/HTTP.png" alt="550" width="550">
+
+### Remote Procedure Call (RPC)
+
+RPCs enable clients to execute procedures in server processes based on a defined service interface.
+
+```
+For example, R=sum(...) sends from client to server, let the server to run
+the function and then send back results to clent from server
+```
+
+- **Communication Module** Implements the desired design choices in terms of retransmission of requests, dealing with duplicates and retransmission of results.
+- **Client Stub Procedure** Behaves like a local procedure to the client. Marshals the procedure identifiers and arguments which is handed to the communication module. Unmarshalls the results in the reply.
+- **Dispatcher Selects** the server stub based on the procedure identifier and forwards the request to the server stub.
+- **Server stub procedure** Unmarshalls the arguments in the request message and forwards it to the service procedure. Marshalls the arguments in the result message and returns it to the client.
+
+    <img src="images/RPC.png" alt="550" width="550">
+
+### Object-Oriented Concepts
+
+- **Objects** consists of attributes and methods. Objects communicate with other objects by invoking methods, passing arguments and receiving results.
+- **Object References** can be used to access objects. Object references can be assigned to variables, passed as arguments and returned as results.
+
+```
+Obejct reference is used to describe the pointer to the memory location
+where the Object resides.
+```
+
+- **Interfaces** define the methods that are available to external objects to invoke. Each method signature specifies the arguments and return values.
+- **Actions** - objects performing a particular task on a target object. An action could result in:
+    - The state of the object changed or queried
+    - A new object created
+    - Delegation of tasks to other objects
+- **Exceptions** are thrown when an error occurs. The calling program catches the exception.
+- **Garbage collection** is the process of releasing memory used by objects that are no longer in use. Can be automatic or explicitly done by the program.
+
+### Distributed Object Concepts
+
+#### Remote Objects
+
+An object that can receive remote invocations is called a remote object. A remote object can receive remote invocations as well as local invocations. Remote objects can invoke methods in local objects as well as other remote objects.
+
+<img src="images/Remote_objects.png" alt="550" width="550">
+
+#### Remote Object Reference
+
+A remote object reference is a unique identifier that can be used throughout the distributed system for identifying an object. This is used for invoking methods in a remote object and can be passed as arguments or returned as results of a remote method invocation.
+
+<img src="images/remote_object_reference.png" alt="550" width="550">
+
+#### Remote Interface
+
+A remote interface defines the methods that can be invoked by external processes. Remote objects implement the remote interface.
+
+<img src="images/remote_interface.png" alt="550" width="550">
+
+#### Actions in a distributed system
+
+Actions can be performed on remote objects (objects in other processes of computers). An action could be executing a remote method defined in the remote interface or creating a new object in the target process. Actions are invoked using Remote Method Invocation (RMI).
+
+<img src="images/Action_in_distributed_system.png" alt="550" width="550">
+
+#### Garbage collection in a distributed system
+
+Is achieved through reference counting.
+
+#### Exceptions
+
+Similar to local invocations, but special exceptions related to remote invocations are available (e.g. timeouts).
+
+### Implementation of RMI
+
+<img src="images/RMI.png" alt="550" width="550">
+
+- The **Communication Module** is responsible for communicating messages (requests and replies) between the client and the server. It uses three fields from the message:
+    - message type
+    - request ID
+    - remote object reference
+
+It is responsible for implementing the invocation semantics. The communication module queries the remote reference module to obtain the local reference of the object and passes the local reference to the dispatcher for the class.
+
+- The **Remote reference module** is responsible for:
+    - Creating remote object references
+    - Maintaining the remote object table which is used for translating between local and remote object references
+
+```
+When a remote object reference arrives in a request or reply message, the
+remote reference module is asked for the corresponding local object
+reference, which may refer to either to a local proxy or a remote object.
+```
+
+The remote object table contains an entry for each:
+
+- Remote object reference held by the process
+- Local proxy
+
+Entries are added to the remote object table when:
+
+- A remote object reference is passed for the first time
+- When a remote object reference is received and an entry is not present in the table
+
+**Servants** are the objects in the process that receive the remote invocation.
+
+- **The RMI software**: This is a software layer that lies between the application and the communication and object reference modules. Following are the three main components.
+    - **Proxy**: Plays the role of a local object to the invoking object. There is a proxy for each remote object which is responsible for:
+        - Marshalling the reference of the target object, its own method id and the arguments and forwarding them to the communication module.
+        - Unmarshalling the results and forwarding them to the invoking object
+    - **Dispatcher**: There is one dispatcher for each remote object class. Is responsible for mapping to/ finding an appropriate method in the skeleton based on the method ID.
+    - **Skeleton**: Is responsible for:
+        - Unmarshalling the arguments in the request and forwarding them to the servant.
+        - Marshalling the results from the servant to be returned to the client.
+
+### Developing RMI Programs
+
+Developing a RMI client-server program involves the following steps:
+
+1. Defining the interface for remote objects - Interface is defined using the interface definition mechanism supported by the particular RMI software.
+2. Compiling the interface - Compiling the interface generates the proxy, dispatcher and skeleton classes.
+3. Writing the server program - The remote object classes are implemented and compiled with the classes for the dispatchers and skeletons. The server is also responsible for creating and initializing the objects and registering them with the binder.
+4. Writing client programs - Client programs implement invoking code and contain proxies for all remote classes. Uses a binder to lookup for remote objects.
+
+### Dynamic invocation
+
+Proxies are precompiled to the program and hence do not allow invocation of remote interfaces not known during compilation. **Dynamic invocation** allows the invocation of a generic interface using a doOperation method.
+
+### Server and Client programs
+
+A server program contains:
+
+- classes for dispatchers and skeletons
+- an initialization section for creating and initializing at least one of the servants
+- code for registering some of the servants with the binder
+
+A client program will contain the classes for all the proxies of remote objects.
+
+### Factory methods
+
+- Servants cannot be created by remote invocation on constructors
+- Servants are created during initialization or methods in a remote interface designed for this purpose
+- Factory method is a method used to create servants and a factory object is an object with factory patterns
+
+<img src="images/factory_pattern.png" alt="550" width="550">
+
+### The binder
+
+Client programs require a way to obtain the remote object reference of the remote objects in the server. A **binder** is a service in a distributed system that supports this functionality. A binder maintains a table containing mappings from textual names to object references. Servers register their remote objects (by name) with the binder. Clients look them up by name.
+
+### Activation of remote objects
+
+- A remote object is active if it is available for invocation in the process.
+- A remote object is passive if it is not currently active but can be made active. A passive object contains:
+    - the implementation of the methods
+    - its state in marshalled form
+
+### Object Location
+
+- Remote object references are used for addressing objects
+- The object reference contains the Internet address and the port number of the process that created the remote object
+- This restricts the object to reside within the same process
+- A **location server** allows clients to locate objects based on the remote object reference
+
+### Distributed garbage collection
+
+A distributed garbage collector ensures that a remote object continues to exist as long as there are local or remote object references to the object. If no references exist then the object will be removed and the memory will be released.
