@@ -11,7 +11,6 @@
 - [Models](#Models)
 - [Interprocess Communication](#Interprocess-Communication)
 
-
 ---
 
 ## Introduction
@@ -461,3 +460,195 @@ Enemy (adversary) is one capable of sending any message to any process or readin
 <img src="images/Addressing_security_threats.png" alt="550" width="550">
 
 ## Interprocess Communication
+
+This and the next chapters deal with middleware:
+
+- This chapter deals with the lower layer of middleware that support basic interprocess communication
+- The next one introduces high level communication paradigms (RMI and RPC)
+
+<img src="images/interprocess.png" alt="550" width="550">
+
+**UDP or User Datagram Protocol**, does not guarantee delivery, while **TCP or Transport Control** Protocols provides a reliable connection oriented protocol.
+
+- Data Representation:
+    - Deals with how objects and data used in application programs are translated into a form suitable for sending as messages over the network
+- Higher level protocols:
+    - Client-server communication: Request-reply protocols
+    - Group Communication: Group multicast protocol
+
+### The API for the Internet protocols
+
+- Processes use two message communication functions: send and receive
+- A queue is associated with each message destination
+- Communication may be synchronous or asynchronous:
+    - In synchronous communication, both send and the receive operations are blocking operations. When a send is issued the sending process is blocked until the receive is issued. Whenever the receive is issued the process blocks until a message arrives.
+    - In asynchronous communication, the send operation is non-blocking. The sending process returns as soon as the message is copied to a local buffer and the transmission of the message proceeds in parallel. Receive operation can be blocking or non-blocking (nonblocking receives are not normally supported in today's systems).
+
+### Message Destinations
+
+- Messages are sent to an (Internet address, local port) pair
+- A port usually has exactly one receiver (except multicast protocols) but can have multiple senders
+    - Recent changes allow multiple processes to listen to the same port, for performance reasons
+- Location transparency is provided by a name server, binder or OS
+
+<img src="images/Message_destination.png" alt="550" width="550">
+
+### Socket
+
+A Socket provides an end point for communication between processes.
+
+- For a process to receive messages, its socket must be bound to a local port on one of the Internet addresses of the computer on which it runs.
+- Messages sent to a particular port of an Internet address can be only be received by a process that has a socket associated with the particular port number on that Internet address.
+- Same socket can be used both for sending and receiving messages.
+- Processes can use multiple ports to receive messages.
+- Recent changes allow multiple processes to listen on the same port.
+- Any number of processes can send messages to the same port.
+- Each socket is associated with a single protocol (UDP or TCP).
+
+### UDP datagram communication
+
+- Both the sender and the receiver bind to sockets:
+    - Server (receiver) binds its socket to a server port, which is made known to the client
+    - A client (sender) binds its socket to any free port on the client machine
+    - The receive method returns the Internet address and the port of the sender, in addition to the message allowing replies to be sent
+- Message Size:
+    - Receiving process defines an array of bytes to receive the message
+    - If the message is too big it gets truncated
+    - Protocol allow packet lengths of 2^16 bytes but the practical limit is 8 kilo bytes.
+- Blocking:
+    - Non-blocking sends and blocking receives are used for datagram communication
+    - Operation returns when the message is copied to the buffer
+    - Message is delivered to the message buffer of the socket bound to the destination port
+    - Outstanding or future invocations of the receive on the socket can collect the messages
+    - Messages are discarded if no socket is bound to the port
+- Timeouts:
+    - Receive will wait indefinitely till messages are received
+    - Timeouts can be set on sockets to exit from infinite waits and check the condition of the sender
+- Receive generally allows receiving from any port. It can also allow to receive from only from a given Internet address and port.
+- Possible failures:
+    - Data Corruption: checksum can be used to detect data corruption
+    - Omission failures: buffers full, corruption, dropping
+    - Order: messages might be delivered out of order
+- UDP does not suffer from overheads associated with guaranteed message delivery
+    - Example uses of UDP:
+        - Domain Name Service
+        - Voice Over IP (VOIP)
+
+### TCP Stream Communication
+
+- Features of stream abstraction:
+    - Message sizes: There is no limit on data size applications can use.
+    - Lost messages: TCP uses an acknowledgment scheme unlike UDP. If acknowledgments are not received the messages are retransmitted.
+    - Flow control: TCP protocol attempts to match the speed of the process that reads the message and writes to the stream.
+    - Message duplication or ordering: Message identifiers are associated with IP packets to enable the recipient to detect and reject duplicates and reorder messages in case messages arrive out of order.
+    - Message destinations: The communicating processes establish a connection before communicating. The connection involves a connect request from the client to the server followed by an accept request from the server to the client.
+- Steps involved in establishing a TCP stream socket:
+    - Client:
+        1. Create a socket specifying the server address and port
+        2. Read and write data using the stream associated with the socket
+    - Server:
+        1. Create a listening socket bound to a server port
+        2. Wait for clients to request a connection (Listening socket maintains a queue of incoming connection requests)
+        3. Server accepts a connection and creates a new stream socket for the server to communicate with the client retaining the original listening socket at the server port for listening to incoming connections. A pair of sockets in client and server are connected by a pair of streams, one in each direction. A socket has an input stream and an output stream.
+- When an application closes a socket, the data in the output buffer is sent to the other end with an indication that the stream is broken. No further communication is possible.
+- TCP communication issues:
+    - There should a pre-agreed format for the data sent over the socket
+    - Blocking is possible at both ends
+    - If the process supports threads, it is recommended that a thread is assigned to each connection so that other clients will not be blocked.
+- Failure Model:
+- TCP streams use checksum to detect and reject corrupt packets and sequence numbers to detect and reject duplicates
+- Timeouts and retransmission is used to deal with lost packets
+- Under severe congestion TCP streams declare the connections to be broken hence does not provide reliable communication
+- When communication is broken the processes cannot distinguish between network failure and process crash
+- Communicating process cannot definitely say whether the messages sent recently were received
+- Use of TCP: HTTP, FTP, Telnet, SMTP
+
+### External data representation and marshalling
+
+- Data structures in programs are flattened to a sequence of bytes before transmission
+- Different computers have different data representations. Two ways to enable computers to interpret data in different formats:
+    - Data is converted to an agreed external format before transmission and converted to the local form on receipt
+    - Values transmitted in the senders format, with an indication of the format used
+- External data representation: Agreed standard for representing data structures and primitive data
+- Marshalling: Process of converting the data to the form suitable for transmission
+- Unmarshalling: Process of disassembling the data at the receiver
+
+Three approaches to external data representation:
+
+#### CORBA's Common Data Representation
+
+- CORBA CDR is the external data representation defined with CORBA 2.0
+- Consists of 15 primitive data types including short, long, unsigned short, unsigned long, float, double, char, boolean, octet and any
+- Primitive data types can be sent in big-endian or little-endian orderings. Values are sent in the sender's ordering which is specified in the message.
+- Marshalling in CORBA - Marshalling operations can be automatically generated from the data type specification defined in the CORBA IDL (interface definition language). CORBA interface compiler generates the marshalling and unmarshalling operations.
+- CORBA CDR for a message that contains three fields of a struct whose types are string , string and unsigned long :
+
+<img src="images/CORBA.png" alt="550" width="550">
+
+#### Java Object Serialization
+
+- Serialization refers to the activity of flattening an object to be suitable for storage or transmission
+
+ ```
+Serialization is the process of converting the state information of an
+object instance into a binary or textual form to persist into storage
+medium or transported over a network.
+ ```
+
+- Deserialization refers to the activity of restoring the state of the object
+- When a Java object is serialized:
+    - Information about the class of the object is included in the serialization - e.g. name of class, version
+    - All objects it references are serialized with it. References are serialized as handles (handle is a reference to an object within the serialized object)
+    - During remote method invocation, the arguments and results are serialized and deserialized by middleware.
+    - Reflection property supported by Java allows serialization and deserialization to be carried out automatically.
+    - The object Person p = new Person("Smith", "London", 1934) in serialized form:
+
+    <img src="images/Java_Object_Serialization.png" alt="750" width="750">
+
+#### Extensible markup language (XML)
+
+- A markup language is a textual encoding representing data and the details of the structure (or appearance)
+- The XML definition of the ```Person``` structure:
+
+<img src="images/XML.png" alt="350" width="350">
+
+#### JSON, Javascript Object Notation
+
+<img src="images/JSON.png" alt="450" width="450">
+
+### Group communication
+
+- A multicast operation allows group communication - sending a single message to number of processes identified as a group
+- Multicast can happen with or without guarantees of delivery
+- Uses of multi cast:
+    - Fault tolerance based on replicated services
+    - Finding discovery servers, This is where routers, brokers and handlers announce themselves and where you can look them up
+    - Better performance through replicated data
+    - propagation of event notification
+
+    ```
+    Copies are automatically created in other network elements, such as
+    routers, switches and cellular network base stations, but only to
+    network segments that currently contain members of the group.
+    ```
+
+#### IP multicast - example
+
+- Allows a sender to transmit a single packet to a set of computers that form the group
+- The sender is not aware of the individual recipients
+- The group is identified by a class D Internet address (address whose first 4 bits are 1110 in IPv4)
+- IP multicast API:
+    - available only for UDP
+    - an application can send UDP datagrams to a multicast address and ordinary port numbers
+    - an application can join a multicast group by making its socket join the group
+    - when a multicast message reaches a computer, copies are forwarded to all processes that have sockets bound to the multicast address and the specified port number
+- Failure model: Omission failures are possible. Messages may not get to one or more members due to a single omission
+
+### Overlay networks
+
+The distributed system forms its own communication network over the Internet
+
+- An overlay network can be thought of as a computer network on top of another network. All nodes in an overlay network are connected with one another by means of virtual links and each of these links correspond to a path in the underlying network.
+- An example of an overlay network can be distributed systems such as client-server applications and peer-to-peer networks. Such applications or networks act as the overlay networks because all nodes in these applications and networks run on top of the internet.
+
+    <img src="images/overlay_network.png" alt="350" width="350">
