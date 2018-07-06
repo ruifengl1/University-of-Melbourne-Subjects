@@ -2,6 +2,7 @@
 <!-- markdownlint-disable MD007 -->
 <!-- markdownlint-disable MD026 -->
 <!-- markdownlint-disable MD040 -->
+<!-- markdownlint-disable MD024 -->
 
 # Distributed system
 
@@ -11,6 +12,8 @@
 - [Models](#Models)
 - [Interprocess Communication](#Interprocess-Communication)
 - [Remote Invocation](#Remote-Invocation)
+- [Indirect Communicationn](#Indirect-Communication)
+- [OS Support](#OS-Support)
 
 ---
 
@@ -913,3 +916,251 @@ Client programs require a way to obtain the remote object reference of the remot
 ### Distributed garbage collection
 
 A distributed garbage collector ensures that a remote object continues to exist as long as there are local or remote object references to the object. If no references exist then the object will be removed and the memory will be released.
+
+## Indirect Communication
+
+Indirect communication is defined as communication between entities in a distributed system through an intermediary with no direct coupling between the sender and the receiver(s).
+
+- Space uncoupling: sender does not know or need to know the identity of the receiver(s)
+- Time uncoupling: sender and receiver can have independent lifetimes, they do not need to exist at the same time. Time uncoupling is not synonomous with asynchronous communication.
+
+### Group Communication
+
+Group communication offers a space uncoupled service whereby a message is sent to a group and then this message is delivered to all members of the group. It provides more than a primitive IP multicast:
+
+- manages group membership
+- detects failures and provides reliability and ordering guarantees
+
+Efficient sending to multiple receivers, instead of multiple independent send operations, is an essential feature of group communication.
+
+### Group Model
+
+<img src="images/group_model.png" alt="550" width="550">
+
+### Group services
+
+<img src="images/group_services.png" alt="550" width="550">
+
+- closed groups only allow group members to multicast to it
+- overlapping groups allows entities to be members of multiple groups
+- synchronous and asynchronous variations can be considered
+
+```
+Closed groups, in which only the members of the group can send to the
+group. Outsiders cannot send messages to the group as a whole, although
+they may be able to send messages to individual members
+Open groups are used, any process in the system (outsiders)can send to any
+group.
+```
+
+### Implementation issues
+
+- reliability and odering in multicast
+    - FIFO (first in first out) ordering is concerned with preserving the order from the prespective of a sender process. If itemA is put onto a queue before itemB, then itemA will come out of the queue before itemB.
+    - causal ordering, a message that happens before another message will be preserved in that order in the delivery at all processes. If itemA reaches a single computer before itemB, then itemA happens before itemB.
+    - total ordering, if a message is delivered before another message at one process then this is preserved at all processes
+
+If you have a global, shared queue that multiple processes write to over a network (i.e. a specific kind of distribute system), then causal ordering and FIFO ordering are the same thing only from the view of the process that holds the queue. If itemA happens before itemB, then itemA was the first in, and will be the first out.
+
+- group membership management
+    - group members leave and join
+    - failed members
+    - notifying members of group membership changes
+    - changes to the group address
+
+### Publish/Subscribe Systems
+
+Publish/subscribe systems are sometimes referred to as distributed event-based systems.
+
+A publish/subscribe system is a system where publishers publish structured events to an event service and subscribers express interest in particular events through subscriptions which can be arbitrary patterns over the structured events.
+
+- financial information systems
+- live feeds of real-time data, e.g. RSS feeds
+- support for cooperative working, where a number of participants need to be informed of events of shared interest
+- support for ubiquitous computing, including management of events emanating from the ubiquitous infrastructure, e.g. location events
+- a broad set of monitoring applications, including network monitoring in the Internet
+
+#### Events and notifications
+
+RMI and RPC support the synchronous communication model where the client invoking the call waits for the results to be returned. Events and notifications are associated with the asynchronous communication model.
+
+Distributed event-based systems can use the publish-subscribe communication paradigm:
+
+- Objects that generate events publish information that are of interest to other objects.
+- Objects that are interested in a particular type of event subscribe to the type of events.
+- Publishers and subscriber are loosely coupled.
+
+#### Characteristics of distributed eventbased systems
+
+- **Heterogeneity**: Allows objects that were not designed to interoperate (to operate together) to communicate due to the loosely coupled nature.
+- **Asynchronous**: Communication is asynchronous and event driven.
+
+#### Example: Simple dealing room system
+
+<img src="images/simple_dealing.png" alt="550" width="550">
+
+#### Event Types
+
+- Events sources can generate different types of events. Attributes contain informations about the event.
+- Types and attributes are used by subscribers when subscribing to events.
+- Notifications occur when event types and attributes match to that of subscriptions.
+
+#### Programming model
+
+<img src="images/programming_model.png" alt="550" width="550">
+
+#### Types of publish-subscribe systems
+
+- **Channel Based**: Publishers publish to named channels and subscribers subscribe to all events on a named channel.
+- **Type Based**: Subscribers register interest in types of events and notifications occur when particular types of events occur.
+- **Topic Based**: Subscribers register interest in particular topics and notifications occur when any information related to the topic arrives.
+- **Content Based**: This is the most flexible of the schemes. Subscribers can specify interest is particular values or ranges of values for multiple attributes. Notifications are based on matching the attribute specification criteria.
+
+#### Centralized versus decentralized
+
+<img src="images/centralized_decentralized.png" alt="550" width="550">
+
+#### Overall System Architecture
+
+<img src="images/p_s_systemArchitecture.png" alt="550" width="550">
+
+### Message Queues
+
+Whereas groups and publish/subscribe provide a one-to-many style of communication, message queues provide a point-to-point service using the concept of a message queue as an indirection, thus achieving the desired properties of space and time uncoupling. The are point-to-point in that the sender places the message into a queue, and it is then removed by a single process.
+
+<img src="images/message_queues.png" alt="550" width="550">
+
+#### Programming model
+
+- send: producers put a message on a particular queue
+- blocking receive: a consumer waits for at least one message on a queue then returns
+- non-blocking receive: or poll, a consumer will check and get a message if there, otherwise it returns without a message
+- notify: an event is generated at the receiver when a message is available
+
+#### Example WebSphere MQ
+
+<img src="images/websphere_MQ.png" alt="550" width="550">
+
+### Shared memory approaches
+
+Distributed shared memory is an abstraction for sharing data between computers that do not share physical memory. Processes access DSM by reads and updates to what appears to be ordinary memory within their address space.
+
+<img src="images/share_memory.png" alt="550" width="550">
+
+#### Tuple Spaces
+
+The tuple space is a more abstract form of shared memory, compared to DSM.
+
+<img src="images/tuple_spaces.png" alt="550" width="550">
+
+#### Example York Linda Kernel
+
+The implementation uses multiple Tuple Space Servers.
+
+<img src="images/tuple_spaces_example.png" alt="550" width="550">
+
+### Summary
+
+<img src="images/summary_indirect.png" alt="550" width="550">
+
+## OS Support
+
+### Networking versus Distributed OS
+
+- A **networked operating system** provides support for networking operations. The users are generally expected to make intelligent use of the network commands and operations that are provided. Each host remains autonomous in the sense that it can continue to operate when disconnected from the networking environment.
+- A **distributed operating system** tries to abstract the network from the user and thereby remove the need for the user to specify how the networking commands and operations should be undertaken. This is sometimes referred to as providing a single system image. Each host may not have everything that would be required to operate on its own, when disconnected from the network.
+
+<img src="images/distributed_network_system.png" alt="550" width="550">
+
+The figure depicts two different hosts, each with its own hardware and operating system, or platform, but conceptually supporting a consistent middleware that supports distributed applications and services.
+
+If the operating system is divided into kernel and server processes then they:
+
+- _Encapsulate_ resources on the host by providing a useful service interface for clients.Encapsulation hides details about the platform's internal operations; like its memory management and device operation.
+- _Protect_ resources from illegitimate access, from other users and other clients that are using resources on that host. Protection ensures that users cannot interfere with each other and that resources are not exhausted to the point of system failure.
+- _Concurrently process_ client requests, so that all clients receive service. Concurrency can be achieved by sharing time -- a fundamental resource -- called time sharing.
+
+E.g. a client may allocate memory using a kernel system call, or it may discover an network address by using a server object. The means of accessing the encapsulated object is called an invocation method.
+
+The core OS components are:
+
+- _Process manager_ -- Handles the creation of processes, which is a unit of resource management, encapsulating the basic resources of memory (address space) and processor time (threads).
+- _Thread manager_ -- Handles the creation, synchronization and scheduling of one or more threads for each process. Threads can be scheduled to receive processor time.
+- _Communication manager_ -- Handles interprocess communication, i.e. between threads from different processes. In some cases this can be across different hosts.
+- _Memory manager_ -- Handles the allocation and access to physical and virtual memory. Provides translation from virtual to physical memory and handles paging of memory.
+- _Supervisor_ -- Handles privileged operations, i.e. those that directly affect shared resources on the host, e.g. to and from an I/O device. The supervisor is responsible for ensuring that host continues to provide proper service to each client.
+
+### Protection
+
+Resources that encapsulate space, such as memory and files, typically are concerned with read and write operations. Protecting a resource requires ensuring that only legitimate read and write operations take place.
+
+- **Legitimate operations** are those carried out only by clients who have the right to perform them. A legitimate operation should also conform to resource policies of the host, e.g. a file should never exceed 1 GB in size or at most 100MB of memory can be allocated.
+- In some cases the resource may also be protected by giving it the property of **visible versus invisible**. A visible resource can be discovered by listing a directory contents or searching for it. An invisible resource should be known a priori to the client; it can be guessed though.
+- **Resources that encapsulate time**, i.e. processes, are concerned with execute operations. In this case a client may or may not have the right to create a process. Again, host based policies should be enforced.
+
+The **kernel** is that part of the operating system which assumes full access to the host's resources. To do this securely requires hardware support at the machine instruction level, which is supplied by the processor using two fundamental operating modes:
+
+- supervisor mode -- instructions that execute while the processor is in supervisor (or privileged) mode are capable of accessing and controlling every resource on the host,
+- user mode -- instructions that execute while the processor is in user (or unprivileged) mode are restricted, by the processor, to only those accesses defined or granted by the kernel.
+
+Most processors have a register that determines whether the processor is operating in user or supervisor mode.
+
+Before the kernel assigns processor time to a user process, it puts the processor into user mode.
+
+A user process accesses a kernel resource using a system call. The _system call is an exception_ that puts the processor into supervisor mode and returns control to the kernel.
+
+### Processes and threads
+
+A process encapsulates the basic resources of memory and processor time. It also encapsulates other higher level resources.
+
+Each process:
+
+- has an address space and has some amount of allocated memory,
+- consists of one or more threads that are given processor time, including thread synchronization and communication resources,
+- higher-level resources like open files and windows.
+
+Threads have equal access to the resources encapsulated _within the process_.
+
+Resource sharing or interprocess communication is required for threads to access resources _in other processes_. E.g. shared memory or socket communication.
+
+### Address spaces
+
+Most operating systems allocate a virtual address space for each process. The virtual address space is typically byte addressable and on a 32 bit architecture will typically have 2^32 byte addresses.
+
+The virtual address space can be divided into _regions_ that are contiguous and do not overlap.
+
+A **paged virtual memory scheme** divides the address space into fixed sized blocks that are either located in physical memory (RAM) or located in swap space on the hard disk drive.
+
+A **page table** is used by the processor and operating system to map virtual addresses to real addresses. The page table also contains access control bits for each page that determine, among other things, the access privileges of the process on a per page basis.
+
+A **page table** is used by the processor and operating system to map virtual addresses to real addresses. The page table also contains access control bits for each page that determine, among other things, the access privileges of the process on a per page basis.
+
+The operating system manages the pages, swapping them into and out of memory, in response to process memory address accesses.
+
+### Shared memory
+
+Two separate addresses spaces can share parts of real memory. This can be useful in a number of ways:
+
+- _Libraries_: The binary code for a library can often be quite large and is the same for all processes that use it. A separate copy of the code in real memory for each process would waste real memory space. Since the code is the same and does not change, it is better to share the code.
+- _Kernel_: The kernel maintains code and data that is often identical across all processes. It is also often located in the same virtual memory space. Again, sharing this code and data can be more efficient than having several copies.
+- _Data sharing and communication_: When two processes want access to the same data or want to communicate then shared memory is a possible solution. The processes can arrange, by calling appropriate system functions, to share a region of memory for this purpose. The kernel and a process can also share data or communicate using this approach.
+
+<img src="images/share_memory_os.png" alt="550" width="550">
+
+### Creation of a new process
+
+The operating system usually provides a way to create processes. In UNIX the ```fork``` system call is used to duplicate the caller's address space, creating a new address space for a new process. The new process is identical to the caller, apart from the return value of the fork system call is different in the caller. The caller is called the parent and the new process is called the child.
+
+In UNIX a ```exec``` system call can be used to replace the caller's address space with a new address space for a new process that is named in the system call. That means it terminates the currently running program and starts executing a new one
+
+A combination of fork and exec allows new processes to be allocated.
+
+### Copy on write
+
+When a new process is created using fork, the address space is copied. The new process' code is identical and is usually read-only so that it can be shared in real memory and no actual copying of memory bytes is required. This is faster and more efficient than making a copy.
+
+However the data and other memory regions may or may not be read-only. If they are writable then the new process will need its own copy when it writes to them.
+
+**Copy on write** is a technique that makes a copy of a memory region only when the new process actually writes to it. This saves time when allocating the new process and saves memory space since only what is required to be copied is actually copied.
+
+### New processes in a distributed system
