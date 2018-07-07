@@ -15,6 +15,7 @@
 - [Indirect Communicationn](#Indirect-Communication)
 - [OS Support](#OS-Support)
 - [Security](#Security)
+- [File Systems](#File-Systems)
 
 ---
 
@@ -1481,3 +1482,124 @@ Attacks on distributed systems depend on access to an existing communication cha
 ### Securing electronic transactions
 
 There are a number of uses of the Internet that require secure transactions:
+
+- Email -- personal information is often transmitted via email, including e.g. credit card details, and in some cases emails are used to authenticate a user, e.g. when a user is signing up to a mailing list.
+- Purchase of goods and services -- payments for goods and services commonly happen via a web interface. Digital products are delivered via the Internet.
+- Banking transactions -- money can be directly transferred between bank accounts and different kinds of payment services can be used, e.g BPAY for paying bills.
+- Micro-transactions -- many digital goods and services, such as per page reading of a book, usage of a CPU, a single music title, 10 minutes of an Internet radio station, etc, require very low transaction costs since the price for such services may amount to fractions of a cent.
+
+### Worst-case assumptions and design guidelines
+
+- Interfaces are exposed -- e.g. a socket interface is open to the public, in much the same way as the front door of a house.
+- Networks are insecure -- messages can be looked at, copied and falsified.
+- Limit the lifetime and scope of each secret -- keys and passwords can be broken, given enough time and resources.
+- Algorithms and program code are available to attackers -- the bigger and more widelydistributed a secret is, the greater the risk of its disclosure. Open source code is scrutinized by many more programmers than closed source code and this helps to find potential security problems before they are taken advantage of.
+- Attackers may have access to large resources -- available computing power needs to be predicted into the life time of the system and systems need to be secure against some orders of magnitude beyond this.
+- Minimize the trusted base -- parts of the system that are responsible for enforcing security are trusted, the greater the number of trusted parts the greater the complexity and so the greater risk of errors and misuse.
+
+### Authentication
+
+<img src="images/authentication.png" alt="950" width="950">
+
+#### Kerberos overview
+
+<img src="images/kerberos.png" alt="550" width="550">
+
+#### Challenge Response
+
+The use of an authentication server is practical in situations where all users are part of a single organization. It is not practical when access is required between parties that are not supervised by a single organization.
+
+The **challenge-response technique** is now widely used to avoid sending passwords in the clear. The identity of a client is established by sending the client an encrypted message that only the client should be able to decrypt, this is called a challenge message. If the client cannot decrypt the challenge message then the client cannot properly respond.
+
+### Authenticated communication with public keys
+
+<img src="images/authenticated_with_public_key.png" alt="950" width="950">
+
+### Digital signature
+
+<img src="images/digital_signature.png" alt="950" width="950">
+
+### Digital Signature with pub/priv keys
+
+<img src="images/digital_signature_keys.png" alt="550" width="550">
+
+### Digital Signature with shared key
+
+<img src="images/digital_key_shared_key.png" alt="550" width="550">
+
+### Certificates
+
+<img src="images/certificates.png" alt="950" width="950">
+
+### Certificate chains
+
+For Alice to authenticate a certificate from Sara concerning Bob's public key, Alice must first have Sara's public key. This poses a recursive problem.
+
+In the simplest case, Sara creates a self-signed certificate, which is attesting to her own public key. The self-signed certificate is widely publicized (e.g. by distributing with operating system or browser installation). This certificate is trusted. The private key must be closely guarded in order to maintain the integrity of all certificates that are signed with it.
+
+However, assume that Carol has signed a certificate attesting to Bob's public key and that Sara has signed a certificate attesting to Carol's public key. This is an example of a certificate chain. If Alice trusts Carol's certificate then she can authenticate Bob's identity. Otherwise Alice must first authenticate Carol's identity using Sara's certificate.
+
+Revoking a certificate is usually by using predefined expiry dates. Otherwise anyone who may make use of the certificate must be told that the certificate is to be revoked.
+
+<img src="images/certificate_chain.png" alt="950" width="950">
+
+### Cryptographic algorithms
+
+Secret key cryptography is often referred to as symmetric cryptography. Public/private key cryptography is often referred to as asymmetric.
+
+**Block ciphers** operate on fixed-size blocks of data; 64 bits is a popular size for the blocks. A message is subdivided into blocks and the last block is padded to the standard length. Each block is encrypted independently. A block is transmitted as soon as it is encrypted.
+
+**Cipher block chaining** avoids the problem of identical plain text blocks encrypted to identical encrypted blocks. However, if the same message is send to do different recipients then it will still look the same and this poses an information leakage weakness. To guard against this a block called an initialization vector is used to start each message in a different way.
+
+<img src="images/CBC.png" alt="550" width="550">
+
+**Stream ciphers** are used when the data cannot be easily divided into blocks. In this case, an agreed upon key stream (such as from a random number generator with known seed) is encrypted and the output is XOR'ed with the data stream.
+
+<img src="images/streaming_cipher.png" alt="550" width="550">
+
+Some **symmetric algorithms** include:
+
+- **TEA**: Tiny Encryption Algorithm, and subsequently the Extended (XTEA) version that guards against some minor weaknesses. The algorithm uses 128 bit keys to encrypt 64 bit blocks. The algorithm consists of only a few lines of code (hence the name), is secure and reasonably fast.
+- **DES**: Data Encryption Standard uses a 56 bit key to encrypt a 64 bit block. This algorithm is now considered obsolete because it is too weak. The triple DES version, 3DES, is stronger but takes a long time to encrypt.
+- **IDEA**: International Data Encryption Algorithm uses a 128 bit key to encrypt 64 bit blocks. It is a faster and more secure successor to DES.
+- **RC4**: A stream cipher that uses keys of any length up to 256 bytes. About 10 times as fast as DES and was widely used in WiFi networks until a weakness was exposed.
+- **AES**: Advanced Encryption Standard has variable block length and key length with specifications for keys with a length of 128, 192 or 256 bits to encrypt blocks with length of 128, 192 or 256 bits. Block and key lengths can be extended by multiples of 32 bits.
+
+The most widely known **asymmetric algorithm** is RSA or the Rivest, Shamir and Adelman algorithm
+
+**RSA** is based on the use of the product of two very large prime numbers (greater than 10e100). Its strength comes from the fact that the determination of the prime factors of such large numbers is very computationally expensive. There are no known flaws in RSA.
+
+### Secure socket layer
+
+The Secure Socket Layer and its successor the Transport Layer Security (TLS) protocol are intended to provide a flexible means for clients and server to communicate using a secure channel.
+
+In typical use the server is authenticated while the client remains unauthenticated. The protocols allow client/server applications to communicate in a way designed to prevent eavesdropping, tampering and message forgery.
+
+There are three basic phases:
+
+1. Peer negotiation for algorithm support.
+2. Public key encryption-based key exchange and certificate-based authentication.
+3. Symmetric cipher-based traffic encryption.
+
+### TLS protocol stack
+
+<img src="images/tls_protocol_stack.png" alt="550" width="550">
+
+### TLS handshake
+
+<img src="images/tls_handshake.png" alt="550" width="550">
+
+1. The first phase allows the client and server to establish which cipher, compression method and other connection parameters are to be used.
+2. The second phase exchanges certificates. A master secret or common secret is negotiated and this is used to generate all other key data for the purpose of encryption.
+
+Security measures include:
+
+- Numbering all records and including the sequence numbers in the signatures.
+- The message that ends the handshake sends a hash of all the exchanged data seen by both parties.
+- Hashing is done by combining (XORing) the results of both MD5 and SHA, in case one is found to be vulnerable.
+
+### TLS record protocol
+
+<img src="images/tls_record_protocol.png" alt="550" width="550">
+
+## File Systems
