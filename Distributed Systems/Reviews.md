@@ -14,6 +14,7 @@
 - [Remote Invocation](#Remote-Invocation)
 - [Indirect Communicationn](#Indirect-Communication)
 - [OS Support](#OS-Support)
+- [Security](#Security)
 
 ---
 
@@ -1164,3 +1165,319 @@ However the data and other memory regions may or may not be read-only. If they a
 **Copy on write** is a technique that makes a copy of a memory region only when the new process actually writes to it. This saves time when allocating the new process and saves memory space since only what is required to be copied is actually copied.
 
 ### New processes in a distributed system
+
+In a distributed system, there is a choice as to which host the new process will be created on. This choice would be made by the operating system.
+
+The decision is largely a matter of policy and some categories are:
+
+- transfer policy -- determines whether the new process is allocated locally or remotely.
+- location policy -- determines which host, from a set of given hosts, the new process should be allocated on.
+
+The policy is often transparent to the user and will attempt to take into account such things as _relative load across hosts_, _interprocess communication_, _host architectures_ and _specialized resources_ that processes may require.
+
+When the user is programming _for explicit parallelism_ or _fault tolerance_ then they may require a means for specifying process location. However, it is desirable to make these choices automatic as well.
+
+Process location policies may be **static or adaptive**.
+
+- Static policies do not take into account the current state of the distributed system.
+- Adaptive policies receive feedback about the current state of the distributed system.
+
+A **load manager** gathers information about the current state of the distributed system. Load managers may be:
+
+- centralized -- a single load manager receives feedback from all other hosts in the system.
+- hierarchical -- load managers are arranged in a tree where the internal nodes are load managers and the leaf nodes ( nodes without other nodes) are hosts.
+- decentralized -- there is typically a load manager for every host and load managers communicate with all other load managers directly.
+
+In a **sender-initiated or push policy**, the local host is responsible for determining the remote host to allocate the process. In the **receiver-initiated or pull policy**, remote hosts advertises to other hosts that new processes should be allocated on it.
+
+### Process migration
+
+Processes can be migrated from one host to another by copying their address space. Depending on the platform and on the resources that are in current use by the process, process migration can be more or less difficult.
+
+Process code is often CPU dependent(different types of CPU), e.g. x86 versus SPARC. This can effectively prohibit migration. Ensuring that hosts are homogeneous can eliminate this problem. Using virtual machines can also help, by avoiding CPU dependent instructions.
+
+Even if the host platforms are such that a process can migrate, the process may be using host resources such as open files and sockets that further complicates the migration.
+
+### Threads
+
+<img src="images/Threads.png" alt="550" width="550">
+
+#### Performance bottleneck
+
+Consider a server than handles client requests. Handling the request requires a disk access of 8ms and 2ms of processor time. **A process with a single thread** takes 10ms of time and the server can complete 100 requests/second.
+
+If we use two threads, where each thread **independently** handles a request then while the first thread is waiting for the disk access to complete the second thread is executing on the processor. In general if we have **many threads** then the server becomes bottlenecked at the disk drive and a request can be completed every 8ms which is 125 requests/second.
+
+Consider when **disk accesses are cached** with a 75% hit rate and an increase in processor time to 2.5ms (the increase is due to the cache access). The disk access is now completed in 0.75x0 + 0.25x8 = 2ms. Hence the requests are bottlenecked at the processor and the maximum rate is
+1000/2.5=400 requests/second.
+
+#### Worker pool architecture
+
+Creating a new thread incurs some overhead that can quickly become the bottleneck in a server system. In this case it is preferable to create threads in advance. It is okay to have a single I/O thread to receive the requests since the I/O is the bottleneck.
+
+In the **worker pool architecture** the server creates a fixed number of threads called a worker pool. As requests arrive at the server, they are put into a queue by the I/O thread and from there assigned to the next available worker thread.
+
+Request priority can be handled by using a queue for each kind of priority. Worker threads can be assigned to high priority requests before low priority requests.
+
+If the number of workers in a pool is too few to handle the rate of requests then a bottleneck forms at the queue. Also, the queue is shared and this leads to an overhead.
+
+### Alternative Threading
+
+#### Thread-per-request architecture
+
+In the thread-per-request architecture a separate thread is created by the I/O thread for each request and the thread is deallocated when the request is finished.
+
+This allows as many threads as requests to exist in the system and avoids accessing a shared queue. Potential parallelism can be maximized.
+
+However, thread allocation and deallocation incurs overheads as mentioned earlier. Also, as the number of threads increases then the advantages from parallelism decreases (for a fixed number of processors) and the overhead incurred in context switching between threads can outweigh the
+benefit. Managing large numbers of threads can be more expensive than managing a large queue.
+
+#### Thread-per-connection architecture
+
+A single client may make several requests. In the previous architectures, each request is treated independently of the client connection.
+
+In the thread-per-connection architecture, a separate thread is allocated for each connection rather than for each request. This can reduce the overall number of threads as compared to the thread per-request architecture.
+
+The client can make several requests over the single connection.
+
+#### Thread-per-object architecture
+
+In the thread-per-object architecture, a worker thread is associated for each remote object or resource that is being accessed. An I/O thread receives requests and queues them for each worker thread.
+
+<img src="images/alternative_threading.png" alt="550" width="550">
+
+### Threads within clients
+
+Threads are useful within clients in the case when the request to the server takes considerable time. Also, communication invocations often block while the communication is taking place.
+
+E.g., in a web browser the user can continue to interact with the current page while the next page is being fetched from the server. Multiple threads can be used to fetch each of the images in the page, where each image may come from a different server.
+
+### Threads versus multiple processes
+
+It is possible to use multiple processes instead of multiple threads. However the threaded approach has the advantages of being cheaper to allocate/deallocate and of being easy to share resources via shared memory.
+
+One study showed that creating a new process took about 11ms while creating a new thread took 1ms. While these times may be decreasing as as technology improves, the relative difference is likely to remain.
+
+This is because, e.g., processes require a new address space which leads to a new page table, while threads require in comparison only a new processor context.
+
+```
+Multiple threads can exist within one process, executing concurrently and
+sharing resources such as memory, while different processes do not share
+these resources. In particular, the threads of a process share its
+executable code and the values of its variables at any given time.
+```
+
+**Context switching** between threads is also cheaper than between processes because of cache behavior concerned with address spaces. Some processors are optimized to switch between threads (hyper-threading) and so this can lead to greater advantages for the threading model; though it has caveats as well.
+
+A **processor context** comprises the values of the processor registers such as the program counter, the address space identifier and the processor protection mode (supervisor or user).
+
+**Context switching** involves saving the processor's original state and loading the new state. When changing from a user context to a kernel context it also involves changing the protection mode which is a called a _domain transition_.
+
+One study showed that context switching between processes took 1.8ms while switching between threads belonging to the same process took 0.4ms. Again, it is the relative difference that is of interest here.
+
+### Thread programming
+
+Thread programming is largely concerned with the study of concurrency, including:
+
+- race condition,
+- critical section,
+- monitor,
+- condition variable, and
+- semaphore.
+
+### Thread scheduling
+
+Some thread scheduling is **preemptive**. In this case a running thread is suspended at any time, usually periodically, to allow processor time for other threads.
+
+Other the thread scheduling is **non-preemptive**. In this case a running thread will continue to receive processor time until the thread yields control back to the thread scheduler.
+
+```
+The scheduling in which a running process can be interrupted if a high
+priority process enters the queue and is allocated to the CPU is called
+preemptive scheduling. In this case, the current process switches from
+the running queue to ready queue and the high priority process utilizes
+the CPU cycle.
+The scheduling in which a running process cannot be interrupted by any
+other process is called non-preemptive scheduling. Any other process
+which enters the queue has to wait until the current process finishes its
+CPU cycle.
+```
+
+Non-preemptive scheduling has the advantage that concurrency issues, such as mutual exclusion to a shared variable, are greatly simplified.
+
+However, non-preemptive scheduling does not guarantee that other threads will receive processor time since an errant thread can run for an arbitrarily long time before yielding. This can have negative effects on performance and usability.
+
+### User versus kernel threads
+
+- User threads within a process cannot take advantage of multiple processors.
+- A user thread that causes a page fault will block the entire process and hence all of the threads in that process.
+- User threads within different processes cannot be scheduled according to a single scheme of relative prioritization.
+- Context switching between user threads can be faster than between kernel threads.
+- A user thread scheduler can be customized by the user, to be specific for a given application.
+- Usually the kernel places limits on how many kernel threads can be allocated, a user thread scheduler can usually allocate more threads than this.
+- It is possible to combine kernel level threads with user level threads.
+
+### Communication and invocation
+
+An invocation such as a remote method invocation, remote procedure call or event notification is intended to bring about an operation on a resource in a different address space.
+
+The kernel can provide communication primitives such as TCP and UDP, and it can also provide higher level primitives. In most cases the higher level primitives are provided by middleware because it become too complex to develop them into the kernel and because standards are not widely accepted at the higher level.
+
+### Protocols and openness
+
+Using open protocols, as opposed to closed or proprietary protocols, facilitates interoperation between middleware implementations on different systems.(seamlessly connected together on the same network without the need for special application programs or drivers etc. )
+
+Experience has shown that kernels which implement and require their own network protocols do not become popular. A design choice of some new kernels is to _leave the implementation of networking protocols to
+servers_. Hence a choice of networking protocol can be more easily made.
+
+The kernel is still required to provide device drivers for new networking devices such as infrared and BlueTooth. Either the kernel can transparently select the appropriate device driver or middleware should be able to dynamically select the appropriate driver. In either case, standard protocols such as TCP and UDP allow the middleware and application to make use of the new devices without significantly changes.
+
+### Invocation performance
+
+The performance of an invocation can be categorized into three kinds, depending on what is required to invoke the resource:
+
+- User space procedure -- minimal overhead, allocating stack space.
+- System call -- if a system call is required then the overhead is characterized by a domain transition to and from the kernel.
+- Interprocess on the same host -- in this case there is a domain transition to the kernel, to the other process, back to the kernel and back to the calling process.
+- Interprocess on the same host -- in this case there is a domain transition to the kernel, to the other process, back to the kernel and back to the calling process.
+- Interprocess on a remote host -- this case includes the same overheads as the previous case, plus the overhead of network communication between the two kernels.
+
+<img src="images/invocation_performance.png" alt="550" width="550">
+
+### RPC Delay versus size
+
+The following are the main factors contributing to **delay for RMI**, apart from actual network delay:
+
+- marshalling -- copying and converting data becomes significant as the amount of data grows.
+- data copying -- after marshalling, the data is typically copied several times, from user to kernel space, and to different layers of the communication subsystem.
+- packet initialization -- protocols headers and checksums take time, the cost is proportional to the size of the data.
+- thread scheduling and context switching -- system calls and server threads.
+- waiting for acknowledgments -- above the network level acknowledgments.
+
+<img src="images/RPC_delay.png" alt="550" width="550">
+
+### Communication via shared memory
+
+Shared memory can be used to communicate between user processes and between a user process
+and the kernel.
+
+Data is communicated by writing to and reading from the shared memory, like a "whiteboard".
+
+In this case, when communicating between user processes the data is not copied to and from kernel space. However the processes will typically need to use some synchronization mechanism to ensure that communication is deterministic.
+
+### Lightweight RPC
+
+<img src="images/lightweight_RPC.png" alt="550" width="550">
+
+### Choice of protocol
+
+**Connection-oriented** protocols like TCP are often used when the client and server are to exchange information in a single session for a reasonable length of time; e.g. telnet or ssh. These protocols can suffer if the end-points are changing their identity, e.g. if one of the end-points is mobile and roaming from one IP address to another, or e.g. if a DHCP based wireless base station experiences a lot of contention and the clients to the base station are continually having their IP address change.
+
+**Connection-less** protocols like UDP are often used for request-reply applications, that do not require a session for any length of time. E.g., finding the time from a time server. Because these protocols often have less overhead, they are also used for applications that require low latency, e.g. in streaming media and online games.
+
+In many cases, cross address space communication happens between processes on the same host and so it is preferable to (transparently) choose a communication mechanism (such as using shared memory) that is more efficient. Lightweight RPC is an example of this.
+
+### Concurrent and asynchronous operation
+
+it is not necessary to wait for the response to a request before moving on to another request. This was exemplified in the use of threads for the client, where e.g. several requests to different web servers could be undertaken **concurrently**.
+
+The telnet client/server is an example of **asynchronous operation**. In this case, whenever a key is typed at the keyboard the client sends the key to the server. Whenever output is available from the server it is sent to the client and received data from the server is printed on the terminal by the client whenever it arrives. Sends and receives are not synchronized in any particular way.
+
+An **asynchronous invocation** returns without waiting for the invocation request to be completed. Either the caller must periodically check whether the request has completed or the caller is notified when the request has completed. The caller is required to take appropriate action if the request fails to complete.
+
+<img src="images/concurrent_operation.png" alt="550" width="550">
+
+### Persistent asynchronous invocations
+
+A persistent asynchronous invocation is placed in a queue at the client and attempts are made to complete the request as the client roams from network to network. At the server side, the response to the request is put into a "client mailbox" and the client is required to retrieve the response when it can. Persistent invocations allow the user to select which kind of network (e.g. GSM or Internet) will be used to service the request. Queued RPC is an example of this.
+
+### Operating system architecture
+
+An open distributed system should make it possible to:
+
+- Run only that system software that is specifically required by the hosts hardware, e.g. specific software for a mobile phone or personal digital assistant. This leaves as much resources as possible available for user applications.
+- Allow the software (and the host) implementing any particular service to be changed independently of other facilities.
+- Allow for alternatives of the same service to be provided, when this is required to suit different users or applications.
+- Introduce new services without harming the integrity of existing ones.
+
+### Monolithic and Micro kernel design
+
+#### Microkernel
+
+**Microkernel** is one of the classification of the kernel. Being a kernel it manages all system resources. But in a microkernel, the user services and kernel services are implemented in different address space. The user services are kept in user address space, and kernel services are kept under kernel address space, thus also reduces the size of kernel and size of operating system as well.
+
+- The Operating System **remains unaffected** as user services and kernel services are isolated so if any user service fails it does not affect kernel service
+- It is **easily extendable** i.e. if any new services are to be added they are added to user address space and hence requires no modification in kernel space. It is also portable, secure and reliable.
+
+It provides minimal services of process and memory management.
+
+- microkernel is solely responsible for:
+    - Inter process-Communication
+    - Memory Management
+    - CPU-Scheduling
+
+#### Monolithic Kernel
+
+**Monolithic Kernel** is another classification of Kernel. Like microkernel this one also manages system resources between application and hardware, but user services and kernel services are implemented under same address space. It increases the size of the kernel, thus increases size of operating system as well.
+
+As both services are implemented under same address space, this makes operating system execution faster.
+
+If any service fails the entire system crashes, and it is one of the drawbacks of this kernel. The entire operating system needs modification if user adds a new service.
+
+<img src="images/mono_micro_kernel.png" alt="550" width="550">
+
+#### Role of Microkernel
+
+<img src="images/micro_kernel.png" alt="550" width="550">
+
+#### Emulation and virtualization
+
+The adoption of microkernels is hindered in part because they do not run software that a vast majority of computer users want to use. Microkernels can use binary emulation techniques, e.g. emulating another operating system like UNIX, to overcome this. The Mach OS emulates both UNIX and OS/2.
+
+**Virtualization** can also be used and can be achieved in different ways. Virtualization can be used to run multiple instances of virtual machines on a single real machine. The virtual machines are then capable of running different kernels. Another approach is to implement an OS' application programming interface, which is what the UNIX Wine program does for Windows; i.e. it implements the Win32 API on UNIX.
+
+Today, two prominent research systems that use virtualization are Xen and PlanetLab.
+
+##### Xen Architecture
+
+<img src="images/Xen.png" alt="550" width="550">
+
+##### Privileges
+
+<img src="images/privileges.png" alt="550" width="550">
+
+##### Virtual Memory
+
+<img src="images/virtual_memory.png" alt="550" width="550">
+
+##### Split Device Drivers
+
+<img src="images/split_device_drivers.png" alt="550" width="550">
+
+A paravirtualized kernel may not function on physical hardware at all, in a similar fashion to attempting to run an Operating System on incompatible hardware.
+
+The Split Driver model is one technique for creating efficient virtual hardware. One device driver runs inside the guest Virtual Machine (aka domU) and communicates with another corresponding device driver inside the control domain Virtual Machine (aka dom0).
+
+## Security
+
+A **security policy** provides a statement of the required integrity privacy of shared information and other limits to the allowable usage of a shared resource. A security policy is enforced using a security mechanism.
+
+### Threats and attacks
+
+Security threats fall into three broad classes:
+
+- Leakage -- the acquisition of information by unauthorized recipients;
+- Tampering -- the unauthorized alteration of information;
+- Vandalism -- interference with the proper operation of a system without gain to the perpetrator.
+
+Attacks on distributed systems depend on access to an existing communication channel. A communication channel can be misused in different ways:
+
+- Eavesdropping -- obtaining copies of messages without authority.
+- Masquerading -- sending or receiving messages using the identity of another principal without their authority.
+- Message tampering -- intercepting messages and altering their contents before passing them on (or substituting a different message in their place); e.g. the man-in-the-middle attack.
+- Replaying -- storing intercepted messages and sending them at a later date.
+- Denial of service -- flooding a channel or other resource with messages in order to deny access for others.
+
+### Securing electronic transactions
+
+There are a number of uses of the Internet that require secure transactions:
