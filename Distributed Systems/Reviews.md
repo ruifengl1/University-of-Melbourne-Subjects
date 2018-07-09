@@ -1817,3 +1817,194 @@ In NFS, clients poll the server to check for updates.
 - Efficiency: Acceptable. Many options exist for tuning NFS.
 
 ## Name Services
+
+The association between a name and an object is called a _binding_.In general, names are bound to attributes of the named objects and a common attribute is the address of the object.
+
+### Example name
+
+<img src="images/example_name.png" alt="550" width="550">
+
+### Names and services
+
+In some cases the client can specify the desired name for a new resource to the service.The service needs to ensure that the names are locally unique. Along with a unique domain name, the email address is unique. There may be one or more hosts that maintain the service; with e.g. the domain name mapping to the host that is least loaded at the time of access.
+
+### Uniform Resource Identifiers
+
+**Uniform Resource Identifiers (URIs)** are concerned with identifying resources on the Web, and other Internet resources such as electronic mailboxes.
+
+Very basically, the first part of a URI contains a short text mnemonic for the kind of resource being named, followed by a colon, e.g. ```http:``` , ```widget:``` or ```tel:``` . The remaining portion of the URI must be interpreted according to the URI syntax which allows for local rules concerning the resource.
+
+A URL is a URI. URLs provide ways to locate the resource being named. They clearly suffer if the resource has since changed its name (e.g. broken links in the Web).
+
+**Uniform Resource Names (URNs)** are URIs that are used as pure resource names rather than locators. An URN requires a resolution service or name service to translate the URN into an actual address to find the named resource.
+
+In this case of URL, the user has to know where the resource is located as well as how to spell the file name and suffix. With a URN, the user only needs to know the name of a resource.For example, here's a hypothetical URN:
+
+```
+urn:def://blue_laser
+
+https://whatis.techtarget.com/definition/blue-laser
+
+```
+
+where ```"def://"``` might indicate an agency or an accessible directory of all dictionaries, glossaries, and encyclopedias on the Internet and "blue laser" was the name of a term. The result of using the agency could be the "best definition," the "longest definition," or even all definitions that the agency could find of "blue laser."
+
+The URI prefix ```urn:``` has been allocated for URNs, e.g. ```urn:ISBN:0-201-62433-8``` identifies a resource (book) by the ISBN number, but there are many kinds of different URI prefixes in use today. E.g. for referring to documents:
+
+- ```doi:10.1007/s10707-005-4887-8``` where the lookup service is ```http://dx.doi.org/10.1007/s10707-005-4887-8``` and this resolves to ```http://www.springerlink.com/content/c250mn1u2m7n5586/``` and in turn this refers to a document, "Building and Querying a P2P Virtual World".
+
+### Name Services
+
+The major operation of a name service is to resolve a name, i.e to lookup the attributes that are bound to the name.
+
+Name management is separated from other services largely because of the openness of distributed systems, which brings the following motivations:
+
+- Unification: Resources managed by different services _use the same naming scheme_, as in the case of URIs.
+- Integration: To share resources that were created in different administrative domains requires naming those resources. Without a _common naming service_, the administrative domains may use entirely different name formats.
+
+Name services have become more important as the size of distributed systems has grown.
+
+### Goals of the Global Name Service
+
+- To handle an essentially arbitrary number of names and to serve an arbitrary number of administrative organizations.
+- A long lifetime, over many changes to the names and the system.
+- High availability, dependent services stop working if the name server is unavailable.
+- Fault isolation, local failures do not cause the entire service to fail.
+- Tolerance of mistrust, a large open system cannot have any component that is trusted by all of the clients in the system.
+
+### Name spaces
+
+A name space defines the set of names that are valid for a given service. The service will only lookup a valid name and may or may not resolve the name (the name may be unbound). E.g., "Two" is not a valid name for a UNIX process but "2" is. Namespaces are commonly structured as hierarchies to allow reuse of names in different contexts.
+
+Names may have a structure that is hierarchical, like a UNIX filename, or otherwise they are flat as in a randomly chosen integer identifier.
+
+Structured names allow the lookup procedure to be more efficient and allows the name to incorporate semantics about the resource.
+
+Names may be unbounded in length or fixed length. Unbounded length names allow the name to be whatever is required (e.g. by the user). Fixed length names are easier to store and process. E.g. consider the differences between a name string of arbitrary length and a 32 bit identifier.
+
+An _alias_ is a name that is typically substituted by the name service for another name. The alias is a common name that allows ease of access to a resource which is managed using some other name. E.g. ```www.example.com``` may be an alias for ```fred.example.com``` , and later change to ```alice.example.com``` for management purposes. The alias does not change though. This provides transparency. Aliasing describes a situation in which a data location in memory can be accessed through different symbolic names in the program.
+
+A _naming domain_ is a name space for which there exists a single overall administrative authority for assigning names within it.
+
+Administrative authority is usually delegated by dividing a domain into sub-domains. Each subdomain shares a common part of the overall name in the name space.
+
+<img src="images/namespace.png" alt="550" width="550">
+
+### Name resolution
+
+Name resolution is in general an iterative process. A name either resolves to a set of primitive attributes or it resolves to another name.
+
+The use of aliases make it possible for resolution cycles to occur and the potential for the resolution process to never terminate. Two solutions to overcome this include:
+
+- Abandon the resolution process after some number of iterations.
+- Require administrators to ensure that no cycles occur.
+
+<img src="images/name_resolution.png" alt="550" width="550">
+
+### Distribution and navigation
+
+Any name service that stores a very large database and is used by a large population will not store all of its naming information on a single server computer.
+
+Bottlenecks include network I/O and server reliability.
+
+Heavily used name services can use replication to increase availability.
+
+When name service authority is delegated then service distribution is also naturally distributed over the delegated authorities. In other words name service data is usually distributed in terms of domain ownership.
+
+When the name service is distributed then a single server may not be able to resolve the name. The resolve request may need to propagate from one server to another, referred to as _navigation_.
+
+Approaches to navigation can be categorized in different ways:
+
+- iterative navigation -- The client makes the request at different servers one at a time. The order of servers visited is usually in terms of domain hierarchy. Always starting at the root server would put excessive load on the root.
+- multicast navigation -- The client multicasts the request to the group (or a subset) of name servers. Only the server that holds the named request returns a result.
+- non-recursive server-controlled navigation -- The client sends the request to a server and the server continues on behalf of the client, as above.
+- recursive server-controlled navigation -- The client sends the request to a server and the server sends the request to another server (if needed) recursively.
+
+### Caching
+
+Caching is a key technique to achieving performance for name services. The binding of names to attributes including other names is observed to not frequently change in many circumstances.
+
+The results of a name resolution request can be cached by the client and by the servers.
+
+Caching is used to eliminate high level name servers from the navigation path and allows resolution to proceed despite some server failures.
+
+Of course, cached data may be out of date and changes can take time to propagate through the system.
+
+### Domain Name System
+
+The Domain Name System (DNS) is a name service design whose main naming database is used across the Internet.
+
+Before DNS, all host names and addresses were held in a single central master file and downloaded by FTP to all computers that required them.
+
+The problems with the original name service included:
+
+- It did not scale to large numbers of computers.
+- Local organizations wished to administer their own naming systems.
+- A general name service was needed -- not one that serves only for looking up computer addresses.
+
+DNS is designed for use in multiple implementations, each of which may have its own name space, though in practice the Internet DNS name space is the one in widespread use.
+
+### DNS naming
+
+The DNS name space is partitioned both organizationally and according to geography, though the domain name itself does not force the named resource to be located in any particular place or location.
+
+DNS domain names are hierarchical from right to left, with "." characters used as a separator. E.g. the original highest level domains were ```com``` , ```edu``` , ```gov``` , ```mil``` , ```net``` , ```org``` and ```int``` . Country domains are ```au``` , ```us``` , ```uk``` , etc.
+
+Each domain authority can specify their own subdomains, e.g. the UK uses ```co.uk``` and ```ac.uk``` for companies and academic communities (edu) respectively.
+
+### DNS queries
+
+In general applications use the DNS to resolve host names in IP addresses. E.g. a query for DNS name ```www.unimelb.edu.au``` :
+
+```
+aharwood:~\$ host www.unimelb.edu.au
+www.unimelb.edu.au has address 128.250.6.182
+```
+
+DNS can also be used to make requests for certain services that support a domain, a common example being the mail host for a domain. E.g. the DNS request for the mail host for domain ```unimelb.edu.au```.
+
+```
+aharwood:~\$ host -t MX unimelb.edu.au
+unimelb.edu.au mail is handled by 10 antispam4.its.unimelb.edu.au.
+unimelb.edu.au mail is handled by 50 muwayb.ucs.unimelb.edu.au.
+unimelb.edu.au mail is handled by 10 antispam1.its.unimelb.edu.au.
+unimelb.edu.au mail is handled by 10 antispam2.its.unimelb.edu.au.
+unimelb.edu.au mail is handled by 10 antispam3.its.unimelb.edu.au.
+```
+
+Reverse resolution allows an IP address to be resolved into a domain name. E.g.:
+
+```
+aharwood:~\$ host 128.250.6.182
+182.6.250.128.in-addr.arpa domain name pointer www.unimelb.edu.au.
+```
+
+Host information allows information about a host to be obtained. This is usually not provided by the administrator because it constitutes a security problem. E.g.:
+
+```
+aharwood:~\$ host -t HINFO www.unimelb.edu.au
+www.unimelb.edu.au host information "None" "None"
+```
+
+Well-known service allows information about services that are run by a computer to be returned.
+
+### DNS name servers
+
+The DNS database is distributed across a logical network of servers.
+The DNS naming data are divided into zones. A zone contains the following data:
+
+- Attribute data for names in a domain, less any sub-domains administered by lower-level authorities. E.g., a zone could contain data for unimelb.edu.au but not for csse.unimelb.edu.au .
+- The names and addresses of at least two name servers that provide authoritative data for the zone.
+- The names of the name servers that hold authoritative data for delegated sub-domains and the IP addresses of these servers.
+- Zone management parameters, such as those governing the caching and replication of zone data.
+
+The DNS architecture specifies that two name servers be provided for each domain, so that the name service can be available in the event of a single server crash.
+
+A **primary or master server** reads zone data directly from a file. A **secondary server** downloads zone data from a primary server. Both of these kinds of servers are said to provide authoritative
+data for the zone. Secondary servers check and update their information on a regular basis, according to zone management parameters.
+
+Any DNS server is free to cache data from other servers. A server that does so must let clients know that the data is not authoritative. Each entry in a zone has a time-to-live and a server must delete or update a cached entry after this time.
+
+### Example DNS domains
+
+<img src="images/DNS_domain.png" alt="550" width="550">
