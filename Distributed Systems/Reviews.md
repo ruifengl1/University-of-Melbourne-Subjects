@@ -150,7 +150,7 @@ interconnection.
 
 - Failure Handling
     - **Detecting**: some types of failures can be detected, e.g. checksums can be used to detect corrupted data in a message, and some kinds of failure are hard to be certain about, e.g. the failure of a remote server.
-    - Masking: some failures that have been detected can be hidden or made less severe, e.g. timeout and message retransmission.
+    - **Masking**: some failures that have been detected can be hidden or made less severe, e.g. timeout and message retransmission.
 
     <img src="images/masking_failure.png" alt="550" width="550">
 
@@ -164,8 +164,8 @@ interconnection.
     - Semaphores supported by the operating system is a well accepted mechanism to handle concurrency
 
     ```
-    Mutex: exclusive-member access to a resource
-    Semaphore: n-member access to a resource
+    Mutex: exclusive-member access to a single shared resource
+    Semaphore: n-member access to a shared pool of resources
     ```
 
 - Transparency, the aspect of hiding the components of a distributed system from the user and the application programmer. Types of  transparencies:
@@ -303,8 +303,8 @@ Objects may be partitioned (e.g web servers) or replicated across servers (e.g. 
     <img src="images/networkcomputer_thinclients.png" alt="550" width="550">
 
 ```
-Thin Clients:the idea is to limit the capabilities of thin clients to only
-essential applications, and remain "thin" in terms of the client
+Thin Clients: the idea is to limit the capabilities of thin clients to
+only essential applications, and remain "thin" in terms of the client
 applications they include.
 ```
 
@@ -395,7 +395,7 @@ The failures in processes and channels are presented using the following taxonom
 
 ##### Omission failures
 
-Omission failures refers to cases where **a process or a communication channel fails to perform what is expected to do**.
+Omission failures refers to cases where **a process or a communication channel fails to perform what is expected to do**.A server fails to respond to incoming requests.
 
 - Process omission failures:
     - Normally caused by a process crash
@@ -412,7 +412,7 @@ Omission failures refers to cases where **a process or a communication channel f
 
 ##### Arbitrary failures (Byzantine failure)
 
-Refers to **any type of failure that can occur in a system**. Could be due to:
+Refers to **any type of failure that can occur in a system**. A server may produce arbitrary responses at arbitrary times. Could be due to:
 
 - Intended steps omitted in processing
 - Message contents corrupted
@@ -616,6 +616,7 @@ medium or transported over a network.
 
 - A markup language is a textual encoding representing data and the details of the structure (or appearance)
 - The XML definition of the ```Person``` structure:
+- [XML namespace](http://www.xmlmaster.org/en/article/d01/c10/)
 
 <img src="images/XML.png" alt="350" width="350">
 
@@ -629,7 +630,7 @@ medium or transported over a network.
 - Multicast can happen with or without guarantees of delivery
 - Uses of multi cast:
     - Fault tolerance based on replicated services
-    - Finding discovery servers, This is where routers, brokers and handlers announce themselves and where you can look them up
+    - Finding discovery servers, this is where routers, brokers and handlers announce themselves and where you can look them up
     - Better performance through replicated data
     - propagation of event notification
 
